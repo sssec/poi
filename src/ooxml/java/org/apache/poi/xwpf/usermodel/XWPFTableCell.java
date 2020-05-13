@@ -139,7 +139,7 @@ public class XWPFTableCell implements IBody, ICell {
      * returns a list of paragraphs
      */
     public List<XWPFParagraph> getParagraphs() {
-        return paragraphs;
+        return Collections.unmodifiableList(paragraphs);
     }
 
     /**
@@ -160,6 +160,7 @@ public class XWPFTableCell implements IBody, ICell {
      */
     public void addParagraph(XWPFParagraph p) {
         paragraphs.add(p);
+        bodyElements.add(p);
     }
 
     /**
@@ -168,8 +169,10 @@ public class XWPFTableCell implements IBody, ICell {
      * @param pos The position in the list of paragraphs, 0-based
      */
     public void removeParagraph(int pos) {
+        XWPFParagraph removedParagraph = paragraphs.get(pos);
         paragraphs.remove(pos);
         ctTc.removeP(pos);
+        bodyElements.remove(removedParagraph);
     }
 
     /**
@@ -427,8 +430,7 @@ public class XWPFTableCell implements IBody, ICell {
     }
 
     public void setText(String text) {
-        CTP ctP = (ctTc.sizeOfPArray() == 0) ? ctTc.addNewP() : ctTc.getPArray(0);
-        XWPFParagraph par = new XWPFParagraph(ctP, this);
+        XWPFParagraph par = (paragraphs.size() == 0) ? addParagraph() : paragraphs.get(0);
         par.createRun().setText(text);
     }
 

@@ -24,9 +24,12 @@ import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Locale;
 
+import org.apache.poi.hwpf.model.types.FibBaseAbstractType;
+import org.apache.poi.hwpf.model.types.FibRgW97AbstractType;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 import org.apache.poi.util.POILogFactory;
 import org.apache.poi.util.POILogger;
 
@@ -68,20 +71,18 @@ public final class FileInformationBlock
         int offset = 0;
 
         _fibBase = new FibBase( mainDocument, offset );
-        offset = FibBase.getSize();
+        offset = FibBaseAbstractType.getSize();
         assert offset == 32;
 
         _csw = LittleEndian.getUShort( mainDocument, offset );
-        offset += LittleEndian.SHORT_SIZE;
-        assert offset == 34;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         _fibRgW = new FibRgW97( mainDocument, offset );
-        offset += FibRgW97.getSize();
+        offset += FibRgW97AbstractType.getSize();
         assert offset == 62;
 
         _cslw = LittleEndian.getUShort( mainDocument, offset );
-        offset += LittleEndian.SHORT_SIZE;
-        assert offset == 64;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         if ( _fibBase.getNFib() < 105 )
         {
@@ -92,10 +93,10 @@ public final class FileInformationBlock
             _cbRgFcLcb = 74;
 
             // skip fibRgFcLcbBlob (read later at fillVariableFields)
-            offset += _cbRgFcLcb * LittleEndian.INT_SIZE * 2;
+            offset += _cbRgFcLcb * LittleEndianConsts.INT_SIZE * 2;
 
             _cswNew = LittleEndian.getUShort( mainDocument, offset );
-            offset += LittleEndian.SHORT_SIZE;
+            offset += LittleEndianConsts.SHORT_SIZE;
 
             _cswNew = 0;
             _nFibNew = -1;
@@ -109,26 +110,22 @@ public final class FileInformationBlock
         assert offset == 152;
 
         _cbRgFcLcb = LittleEndian.getUShort( mainDocument, offset );
-        offset += LittleEndian.SHORT_SIZE;
-        assert offset == 154;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         // skip fibRgFcLcbBlob (read later at fillVariableFields)
-        offset += _cbRgFcLcb * LittleEndian.INT_SIZE * 2;
+        offset += _cbRgFcLcb * LittleEndianConsts.INT_SIZE * 2;
 
         _cswNew = LittleEndian.getUShort( mainDocument, offset );
-        offset += LittleEndian.SHORT_SIZE;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         if ( _cswNew != 0 )
         {
             _nFibNew = LittleEndian.getUShort( mainDocument, offset );
-            offset += LittleEndian.SHORT_SIZE;
+            offset += LittleEndianConsts.SHORT_SIZE;
 
             // first short is already read as _nFibNew
-            final int fibRgCswNewLength = ( _cswNew - 1 )
-                    * LittleEndian.SHORT_SIZE;
-            _fibRgCswNew = IOUtils.safelyAllocate(fibRgCswNewLength, MAX_RECORD_LENGTH);
-            LittleEndian.getByteArray( mainDocument, offset, fibRgCswNewLength, MAX_RECORD_LENGTH );
-            offset += fibRgCswNewLength;
+            final int fibRgCswNewLength = ( _cswNew - 1 ) * LittleEndianConsts.SHORT_SIZE;
+            _fibRgCswNew = IOUtils.safelyClone(mainDocument, offset, fibRgCswNewLength, MAX_RECORD_LENGTH);
         }
         else
         {
@@ -144,7 +141,7 @@ public final class FileInformationBlock
     {
         int nfib = getNFib();
         String nfibHex = String.format(Locale.ROOT, "%04X", nfib);
-        
+
         // Note - CommonCrawl shows there's more variation in these than
         //        the documentation suggests, so accept common clusters around
         //        the "correct" value as well
@@ -665,7 +662,7 @@ public final class FileInformationBlock
     {
       _fieldHandler.setFieldSize(FIBFieldHandler.STTBFFFN, lcbSttbFffn);
     }
-    
+
     public int getFcSttbfRMark()
     {
       return _fieldHandler.getFieldOffset(FIBFieldHandler.STTBFRMARK);
@@ -675,7 +672,7 @@ public final class FileInformationBlock
     {
       return _fieldHandler.getFieldSize(FIBFieldHandler.STTBFRMARK);
     }
-    
+
     public void setFcSttbfRMark(int fcSttbfRMark)
     {
       _fieldHandler.setFieldOffset(FIBFieldHandler.STTBFRMARK, fcSttbfRMark);
@@ -746,7 +743,7 @@ public final class FileInformationBlock
     {
       _fieldHandler.setFieldSize(FIBFieldHandler.PLFLFO, modifiedHigh);
     }
-    
+
     /**
      * How many bytes of the main stream contain real data.
      */
@@ -1078,32 +1075,32 @@ public final class FileInformationBlock
         _cbRgFcLcb = _fieldHandler.getFieldsCount();
 
         _fibBase.serialize( mainStream, 0 );
-        int offset = FibBase.getSize();
+        int offset = FibBaseAbstractType.getSize();
 
         LittleEndian.putUShort( mainStream, offset, _csw );
-        offset += LittleEndian.SHORT_SIZE;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         _fibRgW.serialize( mainStream, offset );
-        offset += FibRgW97.getSize();
+        offset += FibRgW97AbstractType.getSize();
 
         LittleEndian.putUShort( mainStream, offset, _cslw );
-        offset += LittleEndian.SHORT_SIZE;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         ( (FibRgLw97) _fibRgLw ).serialize( mainStream, offset );
         offset += FibRgLw97.getSize();
 
         LittleEndian.putUShort( mainStream, offset, _cbRgFcLcb );
-        offset += LittleEndian.SHORT_SIZE;
+        offset += LittleEndianConsts.SHORT_SIZE;
 
         _fieldHandler.writeTo( mainStream, offset, tableStream );
-        offset += _cbRgFcLcb * LittleEndian.INT_SIZE * 2;
+        offset += _cbRgFcLcb * LittleEndianConsts.INT_SIZE * 2;
 
         LittleEndian.putUShort( mainStream, offset, _cswNew );
-        offset += LittleEndian.SHORT_SIZE;
+        offset += LittleEndianConsts.SHORT_SIZE;
         if ( _cswNew != 0 )
         {
             LittleEndian.putUShort( mainStream, offset, _nFibNew );
-            offset += LittleEndian.SHORT_SIZE;
+            offset += LittleEndianConsts.SHORT_SIZE;
 
             System.arraycopy( _fibRgCswNew, 0, mainStream, offset,
                     _fibRgCswNew.length );
@@ -1113,9 +1110,9 @@ public final class FileInformationBlock
 
     public int getSize()
     {
-        return FibBase.getSize() + LittleEndian.SHORT_SIZE + FibRgW97.getSize()
-                + LittleEndian.SHORT_SIZE + FibRgLw97.getSize()
-                + LittleEndian.SHORT_SIZE + _fieldHandler.sizeInBytes();
+        return FibBaseAbstractType.getSize() + LittleEndianConsts.SHORT_SIZE + FibRgW97AbstractType.getSize()
+                + LittleEndianConsts.SHORT_SIZE + FibRgLw97.getSize()
+                + LittleEndianConsts.SHORT_SIZE + _fieldHandler.sizeInBytes();
     }
 
     public FibBase getFibBase()

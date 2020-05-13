@@ -17,19 +17,17 @@
 
 package org.apache.poi.util;
 
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Collection of string handling utilities
  */
 @Internal
-public class StringUtil {
-    protected static final Charset ISO_8859_1 = StandardCharsets.ISO_8859_1;
+public final class StringUtil {
     //arbitrarily selected; may need to increase
     private static final int MAX_RECORD_LENGTH = 10000000;
 
@@ -37,8 +35,6 @@ public class StringUtil {
     public static final Charset UTF8 = StandardCharsets.UTF_8;
     public static final Charset WIN_1252 = Charset.forName("cp1252");
     public static final Charset BIG5 = Charset.forName("Big5");
-
-    private static Map<Integer, Integer> msCodepointToUnicode;
 
     private StringUtil() {
         // no instances of this class
@@ -69,6 +65,9 @@ public class StringUtil {
             final int offset,
             final int len)
             throws ArrayIndexOutOfBoundsException, IllegalArgumentException {
+        if (len == 0) {
+            return "";
+        }
         if ((offset < 0) || (offset >= string.length)) {
             throw new ArrayIndexOutOfBoundsException("Illegal offset " + offset + " (String data is of length " + string.length + ")");
         }
@@ -294,16 +293,6 @@ public class StringUtil {
     }
 
     /**
-     * Checks to see if a given String needs to be represented as Unicode
-     *
-     * @param value The string to look at.
-     * @return true if string needs Unicode to be represented.
-     */
-    public static boolean isUnicodeString(final String value) {
-        return !value.equals(new String(value.getBytes(ISO_8859_1), ISO_8859_1));
-    }
-
-    /**
      * Tests if the string starts with the specified prefix, ignoring case consideration.
      */
     public static boolean startsWithIgnoreCase(String haystack, String prefix) {
@@ -317,38 +306,6 @@ public class StringUtil {
         int length = suffix.length();
         int start = haystack.length() - length;
         return haystack.regionMatches(true, start, suffix, 0, length);
-    }
-
-    /**
-     * An Iterator over an array of Strings.
-     */
-    public static class StringsIterator implements Iterator<String> {
-        private String[] strings = {};
-        private int position;
-
-        public StringsIterator(String[] strings) {
-            if (strings != null) {
-                this.strings = strings.clone();
-            }
-        }
-
-        @Override
-        public boolean hasNext() {
-            return position < strings.length;
-        }
-
-        @Override
-        public String next() {
-            int ourPos = position++;
-            if (ourPos >= strings.length) {
-                throw new ArrayIndexOutOfBoundsException(ourPos);
-            }
-            return strings[ourPos];
-        }
-
-        @Override
-        public void remove() {
-        }
     }
 
     @Internal
@@ -381,38 +338,18 @@ public class StringUtil {
         if (string == null || string.isEmpty()) {
             return string;
         }
-        initMsCodepointMap();
 
-        StringBuilder sb = new StringBuilder();
-        final int length = string.length();
-        for (int offset = 0; offset < length; ) {
-            int msCodepoint = string.codePointAt(offset);
-            Integer uniCodepoint = msCodepointToUnicode.get(msCodepoint);
-            sb.appendCodePoint(uniCodepoint == null ? msCodepoint : uniCodepoint);
-            offset += Character.charCount(msCodepoint);
-        }
-
-        return sb.toString();
+        int[] cps = string.codePoints().map(StringUtil::mapMsCodepoint).toArray();
+        return new String(cps, 0, cps.length);
     }
 
-    public static synchronized void mapMsCodepoint(int msCodepoint, int unicodeCodepoint) {
-        initMsCodepointMap();
-        msCodepointToUnicode.put(msCodepoint, unicodeCodepoint);
-    }
-
-    private static synchronized void initMsCodepointMap() {
-        if (msCodepointToUnicode != null) {
-            return;
+    private static int mapMsCodepoint(int cp) {
+        if (0xf020 <= cp && cp <= 0xf07f) {
+            return symbolMap_f020[cp - 0xf020];
+        } else if (0xf0a0 <= cp && cp <= 0xf0ff) {
+            return symbolMap_f0a0[cp - 0xf0a0];
         }
-        msCodepointToUnicode = new HashMap<>();
-        int i = 0xF020;
-        for (int ch : symbolMap_f020) {
-            msCodepointToUnicode.put(i++, ch);
-        }
-        i = 0xf0a0;
-        for (int ch : symbolMap_f0a0) {
-            msCodepointToUnicode.put(i++, ch);
-        }
+        return cp;
     }
 
     private static final int[] symbolMap_f020 = {

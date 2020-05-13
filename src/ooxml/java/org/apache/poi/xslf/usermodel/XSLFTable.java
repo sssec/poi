@@ -90,11 +90,10 @@ public class XSLFTable extends XSLFGraphicFrame implements Iterable<XSLFTableRow
 
     @Override
     public XSLFTableCell getCell(int row, int col) {
-        List<XSLFTableRow> rows = getRows();
-        if (row < 0 || rows.size() <= row) {
+        if (row < 0 || _rows.size() <= row) {
             return null;
         }
-        XSLFTableRow r = rows.get(row);
+        XSLFTableRow r = _rows.get(row);
         if (r == null) {
             // empty row
             return null;
@@ -154,11 +153,33 @@ public class XSLFTable extends XSLFGraphicFrame implements Iterable<XSLFTableRow
 
     public XSLFTableRow addRow(){
         CTTableRow tr = _table.addNewTr();
+        XSLFTableRow row = initializeRow(tr);
+        _rows.add(row);
+        return row;
+    }
+
+    private XSLFTableRow initializeRow(CTTableRow tr) {
         XSLFTableRow row = new XSLFTableRow(tr, this);
         // default height is 20 points
         row.setHeight(20.0);
-        _rows.add(row);
-        updateRowColIndexes();
+        for (int i = 0;  i < getNumberOfColumns(); i++) {
+            row.addCell();
+        }
+        return row;
+    }
+
+    /**
+     * Insert a new row at the given index.
+     * @param rowIdx the row index.
+     * @since POI 4.1.3
+     */
+    public XSLFTableRow insertRow(int rowIdx) {
+        if (getNumberOfRows() < rowIdx) {
+            throw new IndexOutOfBoundsException("Cannot insert row at " + rowIdx + "; table has only " + getNumberOfRows() + "rows.");
+        }
+        CTTableRow tr = _table.insertNewTr(rowIdx);
+        XSLFTableRow row = initializeRow(tr);
+        _rows.add(rowIdx, row);
         return row;
     }
 
@@ -167,6 +188,9 @@ public class XSLFTable extends XSLFGraphicFrame implements Iterable<XSLFTableRow
      * @param rowIdx the row index
      */
     public void removeRow(int rowIdx) {
+        if (getNumberOfRows() < rowIdx) {
+            throw new IndexOutOfBoundsException("Cannot remove row at " + rowIdx + "; table has only " + getNumberOfRows() + "rows.");
+        }
         _table.removeTr(rowIdx);
         _rows.remove(rowIdx);
         updateRowColIndexes();
@@ -177,14 +201,13 @@ public class XSLFTable extends XSLFGraphicFrame implements Iterable<XSLFTableRow
      * @since POI 4.1.2
      */
     public void addColumn() {
-        long width = _table.getTblGrid().getGridColArray(_table.getTblGrid().sizeOfGridColArray() - 1).getW();
+        long width = _table.getTblGrid().getGridColArray(getNumberOfColumns() - 1).getW();
         CTTableCol col = _table.getTblGrid().addNewGridCol();
         col.setW(width);
-        for(XSLFTableRow row : _rows) {
+        for (XSLFTableRow row : _rows) {
             XSLFTableCell cell = row.addCell();
             new XDDFTextBody(cell, cell.getTextBody(true)).initialize();
         }
-        updateRowColIndexes();
     }
 
     /**
@@ -193,17 +216,16 @@ public class XSLFTable extends XSLFGraphicFrame implements Iterable<XSLFTableRow
      * @since POI 4.1.2
      */
     public void insertColumn(int colIdx) {
-        if (_table.getTblGrid().sizeOfGridColArray() < colIdx) {
-            throw new IndexOutOfBoundsException("Cannot insert column at " + colIdx + "; table has only " + _table.getTblGrid().sizeOfGridColArray() + "columns.");
+        if (getNumberOfColumns() < colIdx) {
+            throw new IndexOutOfBoundsException("Cannot insert column at " + colIdx + "; table has only " + getNumberOfColumns() + "columns.");
         }
         long width = _table.getTblGrid().getGridColArray(colIdx).getW();
         CTTableCol col = _table.getTblGrid().insertNewGridCol(colIdx);
         col.setW(width);
-        for(XSLFTableRow row : _rows) {
+        for (XSLFTableRow row : _rows) {
             XSLFTableCell cell = row.insertCell(colIdx);
             new XDDFTextBody(cell, cell.getTextBody(true)).initialize();
         }
-        updateRowColIndexes();
     }
 
     /**
@@ -212,11 +234,13 @@ public class XSLFTable extends XSLFGraphicFrame implements Iterable<XSLFTableRow
      * @since POI 4.1.2
      */
     public void removeColumn(int colIdx) {
+        if (getNumberOfColumns() < colIdx) {
+            throw new IndexOutOfBoundsException("Cannot remove column at " + colIdx + "; table has only " + getNumberOfColumns() + "columns.");
+        }
         _table.getTblGrid().removeGridCol(colIdx);
-        for(XSLFTableRow row : _rows) {
+        for (XSLFTableRow row : _rows) {
             row.removeCell(colIdx);
         }
-        updateRowColIndexes();
     }
 
     static CTGraphicalObjectFrame prototype(int shapeId){

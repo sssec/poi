@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -32,6 +33,7 @@ import org.apache.poi.sl.usermodel.TextShape.TextPlaceholder;
 import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 import org.apache.poi.util.LittleEndianOutputStream;
 import org.apache.poi.util.POILogFactory;
 import org.apache.poi.util.POILogger;
@@ -69,11 +71,9 @@ public final class TxMasterStyleAtom extends RecordAtom {
     private List<TextPropCollection> charStyles;
 
     protected TxMasterStyleAtom(byte[] source, int start, int len) {
-        _header = new byte[8];
-        System.arraycopy(source,start,_header,0,8);
+        _header = Arrays.copyOfRange(source, start, start+8);
 
-        _data = IOUtils.safelyAllocate(len-8, MAX_RECORD_LENGTH);
-        System.arraycopy(source,start+8,_data,0,_data.length);
+        _data = IOUtils.safelyClone(source, start+8, len-8, MAX_RECORD_LENGTH);
 
         //read available styles
         try {
@@ -148,7 +148,7 @@ public final class TxMasterStyleAtom extends RecordAtom {
 
         //number of indentation levels
         short levels = LittleEndian.getShort(_data, 0);
-        pos += LittleEndian.SHORT_SIZE;
+        pos += LittleEndianConsts.SHORT_SIZE;
 
         paragraphStyles = new ArrayList<>(levels);
         charStyles = new ArrayList<>(levels);
@@ -159,19 +159,19 @@ public final class TxMasterStyleAtom extends RecordAtom {
                 // Fetch the 2 byte value, that is safe to ignore for some types of text
                 short indentLevel = LittleEndian.getShort(_data, pos);
                 prprops.setIndentLevel(indentLevel);
-                pos += LittleEndian.SHORT_SIZE;
+                pos += LittleEndianConsts.SHORT_SIZE;
             } else {
                 prprops.setIndentLevel((short)-1);
             }
 
             head = LittleEndian.getInt(_data, pos);
-            pos += LittleEndian.INT_SIZE;
+            pos += LittleEndianConsts.INT_SIZE;
 
             pos += prprops.buildTextPropList( head, _data, pos);
             paragraphStyles.add(prprops);
 
             head = LittleEndian.getInt(_data, pos);
-            pos += LittleEndian.INT_SIZE;
+            pos += LittleEndianConsts.INT_SIZE;
             TextPropCollection chprops = new TextPropCollection(0, TextPropType.character);
             pos += chprops.buildTextPropList( head, _data, pos);
             charStyles.add(chprops);

@@ -19,6 +19,7 @@ package org.apache.poi.hssf.dev;
 
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -139,7 +140,7 @@ public final class BiffViewer {
             case CFHeader12Record.sid:        return new CFHeader12Record(in);
             case CFRuleRecord.sid:            return new CFRuleRecord(in);
             case CFRule12Record.sid:          return new CFRule12Record(in);
-            // TODO Add CF Ex, and remove from UnknownRecord 
+            // TODO Add CF Ex, and remove from UnknownRecord
             case CalcCountRecord.sid:         return new CalcCountRecord(in);
             case CalcModeRecord.sid:          return new CalcModeRecord(in);
             case CategorySeriesAxisRecord.sid:return new CategorySeriesAxisRecord(in);
@@ -236,7 +237,7 @@ public final class BiffViewer {
             case SeriesListRecord.sid:        return new SeriesListRecord(in);
             case SeriesRecord.sid:            return new SeriesRecord(in);
             case SeriesTextRecord.sid:        return new SeriesTextRecord(in);
-            case SeriesToChartGroupRecord.sid:return new SeriesToChartGroupRecord(in);
+            case SeriesChartGroupIndexRecord.sid:return new SeriesChartGroupIndexRecord(in);
             case SharedFormulaRecord.sid:     return new SharedFormulaRecord(in);
             case SheetPropertiesRecord.sid:   return new SheetPropertiesRecord(in);
             case StringRecord.sid:            return new StringRecord(in);
@@ -383,8 +384,8 @@ public final class BiffViewer {
 	 * <tr><td>--escher</td><td>turn on deserialization of escher records (default is off)</td></tr>
 	 * <tr><td>--noheader</td><td>do not print record header (default is on)</td></tr>
 	 * </table>
-	 * 
-	 * @param args the command line arguments 
+	 *
+	 * @param args the command line arguments
 	 *
 	 * @throws IOException if the file doesn't exist or contained errors
 	 * @throws CommandParseException if the command line contained errors
@@ -393,21 +394,10 @@ public final class BiffViewer {
 		// args = new String[] { "--out", "", };
 		CommandArgs cmdArgs = CommandArgs.parse(args);
 
-		PrintWriter pw;
-		if (cmdArgs.shouldOutputToFile()) {
-			OutputStream os = new FileOutputStream(cmdArgs.getFile().getAbsolutePath() + ".out");
-			pw = new PrintWriter(new OutputStreamWriter(os, StringUtil.UTF8));
-		} else {
-		    // Use the system default encoding when sending to System Out
-			pw = new PrintWriter(new OutputStreamWriter(System.out, Charset.defaultCharset()));
-		}
-
-		POIFSFileSystem fs = null;
-		InputStream is = null;
-        try {
-            fs = new POIFSFileSystem(cmdArgs.getFile(), true);
-            is = getPOIFSInputStream(fs);
-
+        try (POIFSFileSystem fs = new POIFSFileSystem(cmdArgs.getFile(), true);
+             InputStream is = getPOIFSInputStream(fs);
+             PrintWriter pw = getOutputStream(cmdArgs.shouldOutputToFile() ? cmdArgs.getFile().getAbsolutePath() : null)
+         ) {
             if (cmdArgs.shouldOutputRawHexOnly()) {
                 byte[] data = IOUtils.toByteArray(is);
                 HexDump.dump(data, 0, System.out, 0);
@@ -417,12 +407,20 @@ public final class BiffViewer {
                 runBiffViewer(pw, is, dumpInterpretedRecords, dumpHex, dumpInterpretedRecords,
                         cmdArgs.suppressHeader());
             }
-        } finally {
-            IOUtils.closeQuietly(is);
-            IOUtils.closeQuietly(fs);
-            IOUtils.closeQuietly(pw);
         }
 	}
+
+	static PrintWriter getOutputStream(String outputPath) throws FileNotFoundException {
+        // Use the system default encoding when sending to System Out
+        OutputStream os = System.out;
+        Charset cs = Charset.defaultCharset();
+        if (outputPath != null) {
+            cs = StringUtil.UTF8;
+            os = new FileOutputStream(outputPath + ".out");
+        }
+        return new PrintWriter(new OutputStreamWriter(os, cs));
+    }
+
 
 	static InputStream getPOIFSInputStream(POIFSFileSystem fs) throws IOException {
 		String workbookName = HSSFWorkbook.getWorkbookDirEntryName(fs.getRoot());
@@ -676,7 +674,7 @@ public final class BiffViewer {
 			}
 
 			idx = arraycopy(NEW_LINE_CHARS, buf, idx);
-			
+
 			w.write(buf, 0, idx);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -690,7 +688,7 @@ public final class BiffViewer {
 	    }
 	    return idx;
 	}
-	
+
 	private static char getPrintableChar(byte b) {
 		char ib = (char) (b & 0x00FF);
 		if (ib < 32 || ib > 126) {

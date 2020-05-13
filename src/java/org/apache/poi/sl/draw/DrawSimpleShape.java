@@ -139,13 +139,11 @@ public class DrawSimpleShape extends DrawShape {
     }
 
     protected Paint getFillPaint(Graphics2D graphics) {
-        final PaintStyle ps = getShape().getFillStyle().getPaint();
         DrawPaint drawPaint = DrawFactory.getInstance(graphics).getPaint(getShape());
-        return drawPaint.getPaint(graphics, ps);
+        return drawPaint.getPaint(graphics, getShape().getFillStyle().getPaint());
     }
 
     protected Paint getLinePaint(Graphics2D graphics) {
-        final PaintStyle ps = getShape().getFillStyle().getPaint();
         DrawPaint drawPaint = DrawFactory.getInstance(graphics).getPaint(getShape());
         return drawPaint.getPaint(graphics, getShape().getStrokeStyle().getPaint());
     }
@@ -227,7 +225,9 @@ public class DrawSimpleShape extends DrawShape {
                 break;
             case STEALTH:
             case ARROW:
-                p = new Path(false, true);
+                p = new Path();
+                p.setFill(PaintModifier.NONE);
+                p.setStroke(true);
                 Path2D.Double arrow = new Path2D.Double();
                 arrow.moveTo((-lineWidth * scaleX), (-lineWidth * scaleY / 2));
                 arrow.lineTo(0, 0);
@@ -299,7 +299,9 @@ public class DrawSimpleShape extends DrawShape {
                 break;
             case STEALTH:
             case ARROW:
-                p = new Path(false, true);
+                p = new Path();
+                p.setFill(PaintModifier.NONE);
+                p.setStroke(true);
                 Path2D.Double arrow = new Path2D.Double();
                 arrow.moveTo((lineWidth * scaleX), (-lineWidth * scaleY / 2));
                 arrow.lineTo(0, 0);

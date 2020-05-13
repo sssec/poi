@@ -23,24 +23,21 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Dimension2D;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ref.WeakReference;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.imageio.ImageIO;
-
 import org.apache.poi.common.usermodel.GenericRecord;
 import org.apache.poi.poifs.filesystem.FileMagic;
-import org.apache.poi.sl.draw.Drawable;
 import org.apache.poi.sl.draw.EmbeddedExtractor.EmbeddedPart;
 import org.apache.poi.util.Dimension2DDouble;
 import org.apache.poi.util.GenericRecordJsonWriter;
+import org.apache.poi.xslf.util.OutputFormat.BitmapFormat;
+import org.apache.poi.xslf.util.OutputFormat.SVGFormat;
 
 /**
  * An utility to convert slides of a .pptx slide show to a PNG image
@@ -56,13 +53,13 @@ public final class PPTX2PNG {
 
     private static void usage(String error){
         String msg =
-            "Usage: PPTX2PNG [options] <ppt or pptx file or 'stdin'>\n" +
+            "Usage: PPTX2PNG [options] <.ppt/.pptx/.emf/.wmf file or 'stdin'>\n" +
             (error == null ? "" : ("Error: "+error+"\n")) +
             "Options:\n" +
             "    -scale <float>    scale factor\n" +
             "    -fixSide <side>   specify side (long,short,width,height) to fix - use <scale> as amount of pixels\n" +
             "    -slide <integer>  1-based index of a slide to render\n" +
-            "    -format <type>    png,gif,jpg (,null for testing)\n" +
+            "    -format <type>    png,gif,jpg,svg (,null for testing)\n" +
             "    -outdir <dir>     output directory, defaults to origin of the ppt/pptx file\n" +
             "    -outfile <file>   output filename, defaults to '"+OUTPUT_PAT_REGEX+"'\n" +
             "    -outpat <pattern> output filename pattern, defaults to '"+OUTPUT_PAT_REGEX+"'\n" +
@@ -70,7 +67,11 @@ public final class PPTX2PNG {
             "    -dump <file>      dump the annotated records to a file\n" +
             "    -quiet            do not write to console (for normal processing)\n" +
             "    -ignoreParse      ignore parsing error and continue with the records read until the error\n" +
-            "    -extractEmbedded  extract embedded parts";
+            "    -extractEmbedded  extract embedded parts\n" +
+            "    -inputType <type> default input file type (OLE2,WMF,EMF), default is OLE2 = Powerpoint\n" +
+            "                      some files (usually wmf) don't have a header, i.e. an identifiable file magic\n" +
+            "    -textAsShapes     text elements are saved as shapes in SVG, necessary for variable spacing\n" +
+            "                      often found in math formulas";
 
         System.out.println(msg);
         // no System.exit here, as we also run in junit tests!
@@ -96,6 +97,8 @@ public final class PPTX2PNG {
     private String fixSide = "scale";
     private boolean ignoreParse = false;
     private boolean extractEmbedded = false;
+    private FileMagic defaultFileType = FileMagic.OLE2;
+    private boolean textAsShapes = false;
 
     private PPTX2PNG() {
     }
@@ -156,6 +159,17 @@ public final class PPTX2PNG {
                         fixSide = "long";
                     }
                     break;
+                case "-inputType":
+                    if (opt != null) {
+                        defaultFileType = FileMagic.valueOf(opt);
+                        i++;
+                    } else {
+                        defaultFileType = FileMagic.OLE2;
+                    }
+                    break;
+                case "-textAsShapes":
+                    textAsShapes = true;
+                    break;
                 case "-ignoreParse":
                     ignoreParse = true;
                     break;
@@ -175,7 +189,7 @@ public final class PPTX2PNG {
             return false;
         }
 
-        if (format == null || !format.matches("^(png|gif|jpg|null)$")) {
+        if (format == null || !format.matches("^(png|gif|jpg|null|svg)$")) {
             usage("Invalid format given");
             return false;
         }
@@ -216,6 +230,8 @@ public final class PPTX2PNG {
             System.out.println("Processing " + file);
         }
 
+
+
         try (MFProxy proxy = initProxy(file)) {
             final Set<Integer> slidenum = proxy.slideIndexes(slidenumStr);
             if (slidenum.isEmpty()) {
@@ -239,33 +255,27 @@ public final class PPTX2PNG {
 
                 extractEmbedded(proxy, slideNo);
 
-                BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D graphics = img.createGraphics();
+                try (OutputFormat outputFormat = ("svg".equals(format)) ? new SVGFormat(textAsShapes) : new BitmapFormat(format)) {
+                    Graphics2D graphics = outputFormat.getGraphics2D(width, height);
 
-                // default rendering options
-                graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
-                graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-                graphics.setRenderingHint(Drawable.BUFFERED_IMAGE, new WeakReference<>(img));
+                    // default rendering options
+                    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                    graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+                    graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                    graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
-                graphics.scale(scale / lenSide, scale / lenSide);
+                    graphics.scale(scale / lenSide, scale / lenSide);
 
-                graphics.setComposite(AlphaComposite.Clear);
-                graphics.fillRect(0, 0, width, height);
-                graphics.setComposite(AlphaComposite.SrcOver);
+                    graphics.setComposite(AlphaComposite.Clear);
+                    graphics.fillRect(0, 0, width, height);
+                    graphics.setComposite(AlphaComposite.SrcOver);
 
-                // draw stuff
-                proxy.draw(graphics);
+                    // draw stuff
+                    proxy.draw(graphics);
 
-                // save the result
-                if (!"null".equals(format)) {
-                    ImageIO.write(img, format, new File(outdir, calcOutFile(proxy, slideNo)));
+                    outputFormat.writeOut(proxy, new File(outdir, calcOutFile(proxy, slideNo)));
                 }
-
-                graphics.dispose();
-                img.flush();
             }
         } catch (NoScratchpadException e) {
             usage("'"+file.getName()+"': Format not supported - try to include poi-scratchpad.jar into the CLASSPATH.");
@@ -344,6 +354,9 @@ public final class PPTX2PNG {
         if ("stdin".equals(fileName)) {
             InputStream bis = FileMagic.prepareToCheckMagic(System.in);
             FileMagic fm = FileMagic.valueOf(bis);
+            if (fm == FileMagic.UNKNOWN) {
+                fm = defaultFileType;
+            }
             switch (fm) {
                 case EMF:
                     proxy = new EMFHandler();
@@ -370,6 +383,8 @@ public final class PPTX2PNG {
                     proxy = new PPTHandler();
                     break;
             }
+            proxy.setIgnoreParse(ignoreParse);
+            proxy.setQuite(quiet);
             proxy.parse(file);
         }
 

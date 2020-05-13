@@ -17,9 +17,11 @@
 
 package org.apache.poi.hssf.record;
 
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Supplier;
 
-import org.apache.poi.util.HexDump;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.Removal;
 
@@ -73,23 +75,14 @@ public final class UserSViewBegin extends StandardRecord {
      * @return Globally unique identifier for the custom view
      */
     public byte[] getGuid(){
-        byte[] guid = new byte[16];
-        System.arraycopy(_rawData, 0, guid, 0, guid.length);
-        return guid;
+        return Arrays.copyOf(_rawData, 16);
     }
 
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("[").append("USERSVIEWBEGIN").append("] (0x");
-        sb.append(Integer.toHexString(sid).toUpperCase(Locale.ROOT)).append(")\n");
-        sb.append("  rawData=").append(HexDump.toHex(_rawData)).append("\n");
-        sb.append("[/").append("USERSVIEWBEGIN").append("]\n");
-        return sb.toString();
-    }
-
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
-    @SuppressWarnings("squid:S2975")
+    @SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
     @Deprecated
     @Removal(version = "5.0.0")
     public UserSViewBegin clone() {
@@ -101,4 +94,16 @@ public final class UserSViewBegin extends StandardRecord {
         return new UserSViewBegin(this);
     }
 
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.USER_SVIEW_BEGIN;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "guid", this::getGuid,
+            "rawData", () -> _rawData
+        );
+    }
 }

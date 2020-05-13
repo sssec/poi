@@ -82,39 +82,22 @@ public abstract class AbstractEscherHolderRecord extends Record {
         }
     }
 
-    @Override
-    public String toString()
-    {
-        StringBuilder buffer = new StringBuilder();
-
-        final String nl = System.getProperty("line.separator");
-        buffer.append('[' + getRecordName() + ']' + nl);
-        if (escherRecords.size() == 0)
-            buffer.append("No Escher Records Decoded" + nl);
-        for (EscherRecord r : escherRecords) {
-            buffer.append(r);
-        }
-        buffer.append("[/" + getRecordName() + ']' + nl);
-
-        return buffer.toString();
-    }
-
     protected abstract String getRecordName();
 
     @Override
     public int serialize(int offset, byte[] data)
     {
-        LittleEndian.putShort( data, 0 + offset, getSid() );
+        LittleEndian.putShort(data,      offset, getSid() );
         LittleEndian.putShort( data, 2 + offset, (short) ( getRecordSize() - 4 ) );
         byte[] rawData = getRawData();
         if ( escherRecords.size() == 0 && rawData != null )
         {
-            LittleEndian.putShort(data, 0 + offset, getSid());
+            LittleEndian.putShort(data,     offset, getSid());
             LittleEndian.putShort(data, 2 + offset, (short)(getRecordSize() - 4));
             System.arraycopy( rawData, 0, data, 4 + offset, rawData.length);
             return rawData.length + 4;
         }
-        LittleEndian.putShort(data, 0 + offset, getSid());
+        LittleEndian.putShort(data,     offset, getSid());
         LittleEndian.putShort(data, 2 + offset, (short)(getRecordSize() - 4));
 
         int pos = offset + 4;
@@ -143,8 +126,11 @@ public abstract class AbstractEscherHolderRecord extends Record {
     @Override
     public abstract short getSid();
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
-    @SuppressWarnings("squid:S2975")
+    @SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
     @Deprecated
     @Removal(version = "5.0.0")
     public AbstractEscherHolderRecord clone() {
@@ -267,5 +253,10 @@ public abstract class AbstractEscherHolderRecord extends Record {
             byte[] rawData = getRawData();
             convertToEscherRecords(0, rawData.length, rawData );
         }
+    }
+
+    @Override
+    public List<EscherRecord> getGenericChildren() {
+        return escherRecords;
     }
 }

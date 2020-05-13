@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import org.apache.poi.hssf.HSSFTestDataSamples;
 import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.format.CellFormat;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -32,7 +33,7 @@ import org.junit.Test;
 
 /**
  * @author aviks
- * 
+ *
  * This testcase contains tests for bugs that are yet to be fixed. Therefore,
  * the standard ant test target does not run these tests. Run this testcase with
  * the single-test target. The names of the tests usually correspond to the
@@ -94,7 +95,7 @@ public final class TestUnfixedBugs {
         Sheet sheet = wb.getSheet("Sheet1");
         Row row = sheet.getRow(0);
         Cell cell = row.getCell(0);
-        
+
         HSSFColor bgColor = (HSSFColor) cell.getCellStyle().getFillBackgroundColorColor();
         String bgColorStr = bgColor.getTriplet()[0]+", "+bgColor.getTriplet()[1]+", "+bgColor.getTriplet()[2];
         //System.out.println(bgColorStr);
@@ -105,5 +106,34 @@ public final class TestUnfixedBugs {
         //System.out.println(fontColorStr);
         assertEquals("0, 128, 128", fontColorStr);
         wb.close();
+    }
+
+    @Test
+    public void testBug62242() {
+        CellFormat cfUK  = CellFormat.getInstance("_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * \"-\"??_ ;_ @_");
+        assertEquals("    -   ", cfUK.apply((double) 0).text);
+    }
+
+    @Test
+    public void testDataFormattingWithQuestionMarkBug62242() {
+        // The question mark in the format should be replaced by blanks, but
+        // this is currently not handled when producing the Java formatting and
+        // so we end up with a trailing zero here
+        CellFormat cfUK  = CellFormat.getInstance("??");
+        assertEquals("  ", cfUK.apply((double) 0).text);
+    }
+
+    @Test
+    public void testDataFormattingWithQuestionMarkAndPoundBug62242() {
+        char pound = '\u00A3';
+
+        // The question mark in the format should be replaced by blanks, but
+        // this is currently not handled when producing the Java formatting and
+        // so we end up with a trailing zero here
+        CellFormat cfUK  = CellFormat.getInstance("_-[$£-809]* \"-\"??_-");
+        assertEquals(" "+pound+"   -   ", cfUK.apply((double) 0).text);
+
+        cfUK  = CellFormat.getInstance("_-[$£-809]* \"-\"??_-a");
+        assertEquals(" "+pound+"   -   a", cfUK.apply((double) 0).text);
     }
 }

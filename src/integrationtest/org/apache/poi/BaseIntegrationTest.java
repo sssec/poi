@@ -35,6 +35,13 @@ import java.util.zip.ZipException;
 
 import static org.junit.Assert.assertNotNull;
 
+/**
+ * This class is used for mass-regression testing via a
+ * separate project, this class provides functionality to
+ * run integration tests on one file and handle some
+ * types of files/exceptions, e.g. old file formats.
+ *
+ */
 public class BaseIntegrationTest {
 	private final File rootDir;
 	private String file;
@@ -58,11 +65,8 @@ public class BaseIntegrationTest {
 			// switch XWPF and HWPF and so forth depending on the error message
 			handleWrongOLE2XMLExtension(inputFile, e);
 		} catch (OldFileFormatException e) {
-			if (e.getClass().equals(OldFileFormatException.class)) {
-				// Not even text extraction is supported for these: handler.handleExtracting(inputFile);
-				Assume.assumeFalse("File " + file + " excluded because it is unsupported old Excel format", true);
-			}
-			// otherwise try at least to perform extracting tests on these old files
+			// Not even text extraction is supported for these: handler.handleExtracting(inputFile);
+			Assume.assumeFalse("File " + file + " excluded because it is unsupported old Excel format", true);
 		} catch (EncryptedDocumentException e) {
 			// Do not try to read encrypted files
 			Assume.assumeFalse("File " + file + " excluded because it is password-encrypted", true);

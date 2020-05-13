@@ -19,9 +19,11 @@ package org.apache.poi.ss.format;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.FieldPosition;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Formatter;
+import java.util.IllegalFormatException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -232,15 +234,15 @@ public class CellNumberFormatter extends CellFormatter {
         integerSpecials.addAll(specials.subList(0, integerEnd()));
 
         if (exponent == null) {
-            StringBuilder fmtBuf = new StringBuilder("%");
-
             int integerPartWidth = calculateIntegerPartWidth();
             int totalWidth = integerPartWidth + fractionPartWidth;
 
-            fmtBuf.append('0').append(totalWidth).append('.').append(precision);
-
-            fmtBuf.append("f");
-            printfFmt = fmtBuf.toString();
+            // need to handle empty width specially as %00.0f fails during formatting
+            if(totalWidth == 0) {
+                printfFmt = "";
+            } else {
+                printfFmt = "%0" + totalWidth + '.' + precision + "f";
+            }
             decimalFmt = null;
         } else {
             StringBuffer fmtBuf = new StringBuffer();
@@ -278,7 +280,7 @@ public class CellNumberFormatter extends CellFormatter {
     private DecimalFormatSymbols getDecimalFormatSymbols() {
         return DecimalFormatSymbols.getInstance(locale);
     }
-    
+
     private static void placeZeros(StringBuffer sb, List<Special> specials) {
         for (Special s : specials) {
             if (isDigitFmt(s)) {
@@ -458,6 +460,8 @@ public class CellNumberFormatter extends CellFormatter {
             StringBuffer result = new StringBuffer();
             try (Formatter f = new Formatter(result, locale)) {
                 f.format(locale, printfFmt, value);
+            } catch (IllegalFormatException e) {
+                throw new IllegalArgumentException("Format: " + printfFmt, e);
             }
 
             if (numerator == null) {
@@ -555,7 +559,7 @@ public class CellNumberFormatter extends CellFormatter {
     private void writeScientific(double value, StringBuffer output, Set<CellNumberStringMod> mods) {
 
         StringBuffer result = new StringBuffer();
-        FieldPosition fractionPos = new FieldPosition(DecimalFormat.FRACTION_FIELD);
+        FieldPosition fractionPos = new FieldPosition(NumberFormat.FRACTION_FIELD);
         decimalFmt.format(value, result, fractionPos);
         writeInteger(result, output, integerSpecials, mods, showGroupingSeparator);
         writeFractional(result, output);
@@ -695,7 +699,7 @@ public class CellNumberFormatter extends CellFormatter {
             LOG.log(POILogger.ERROR, "error while fraction evaluation", ignored);
         }
     }
-    
+
     private String localiseFormat(String format) {
         DecimalFormatSymbols dfs = getDecimalFormatSymbols();
         if(format.contains(",") && dfs.getGroupingSeparator() != ',') {
@@ -711,8 +715,8 @@ public class CellNumberFormatter extends CellFormatter {
         }
         return format;
     }
-    
-    
+
+
     private static String replaceLast(String text, String regex, String replacement) {
         return text.replaceFirst("(?s)(.*)" + regex, "$1" + replacement);
     }
@@ -763,7 +767,6 @@ public class CellNumberFormatter extends CellFormatter {
         }
 
         ListIterator<Special> it = numSpecials.listIterator(numSpecials.size());
-        boolean followWithGroupingSeparator = false;
         Special lastOutputIntegerDigit = null;
         int digit = 0;
         while (it.hasPrevious()) {
@@ -775,7 +778,7 @@ public class CellNumberFormatter extends CellFormatter {
                 resultCh = '0';
             }
             Special s = it.previous();
-            followWithGroupingSeparator = showGroupingSeparator && digit > 0 && digit % 3 == 0;
+            boolean followWithGroupingSeparator = showGroupingSeparator && digit > 0 && digit % 3 == 0;
             boolean zeroStrip = false;
             if (resultCh != '0' || s.ch == '0' || s.ch == '?' || pos >= strip) {
                 zeroStrip = s.ch == '?' && pos < strip;
@@ -784,7 +787,6 @@ public class CellNumberFormatter extends CellFormatter {
             }
             if (followWithGroupingSeparator) {
                 mods.add(insertMod(s, zeroStrip ? " " : groupingSeparator, CellNumberStringMod.AFTER));
-                followWithGroupingSeparator = false;
             }
             digit++;
             --pos;

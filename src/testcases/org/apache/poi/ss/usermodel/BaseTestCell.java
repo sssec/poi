@@ -133,18 +133,15 @@ public abstract class BaseTestCell {
             assertProhibitedValueAccess(cell, CellType.BOOLEAN, CellType.STRING,
                                         CellType.FORMULA, CellType.ERROR);
 
-            String strNull = null;
-            cell.setCellValue(strNull);
+            cell.setCellValue((String)null);
             assertEquals("", cell.getStringCellValue());
             assertEquals(CellType.BLANK, cell.getCellType());
 
-            LocalDate ldNull = null;
-            cell.setCellValue(ldNull);
+            cell.setCellValue((LocalDate)null);
             assertNull(cell.getLocalDateTimeCellValue());
             assertEquals(CellType.BLANK, cell.getCellType());
 
-            LocalDateTime ldtNull = null;
-            cell.setCellValue(ldtNull);
+            cell.setCellValue((LocalDateTime)null);
             assertNull(cell.getLocalDateTimeCellValue());
             assertEquals(CellType.BLANK, cell.getCellType());
 
@@ -769,12 +766,12 @@ public abstract class BaseTestCell {
             Sheet sh = wb1.createSheet();
             Row row = sh.createRow(0);
             Cell cell = row.createCell(0);
-            cell.setCellValue(Integer.valueOf(23));
+            cell.setCellValue(23);
 
             cell.setCellValue("some");
 
             cell = row.createCell(1);
-            cell.setCellValue(Integer.valueOf(23));
+            cell.setCellValue(23);
 
             cell.setCellValue("24");
 
@@ -808,7 +805,7 @@ public abstract class BaseTestCell {
 
             Cell cell3 = row.createCell(2);
             Hyperlink link3 = helper.createHyperlink(HyperlinkType.URL);
-            link3.setAddress("http://poi.apache.org/");
+            link3.setAddress("https://poi.apache.org/");
             cell3.setHyperlink(link3);
             assertNotNull(cell3.getHyperlink());
 
@@ -1352,7 +1349,8 @@ public abstract class BaseTestCell {
             cell.setCellFormula("\"foo\"");
             assertEquals(CellType.FORMULA, cell.getCellType());
             assertEquals(CellType.BOOLEAN, cell.getCachedFormulaResultType());
-            assertTrue(cell.getBooleanCellValue());
+            assertTrue("Expected a boolean cell-value, but had 'false'",
+                    cell.getBooleanCellValue());
         }
     }
 
@@ -1369,7 +1367,8 @@ public abstract class BaseTestCell {
             cell.setCellFormula("\"bar\"");
             assertEquals(CellType.FORMULA, cell.getCellType());
             assertEquals(CellType.BOOLEAN, cell.getCachedFormulaResultType());
-            assertTrue(cell.getBooleanCellValue());
+            assertTrue("Expected a boolean cell-value, but had 'false'",
+                    cell.getBooleanCellValue());
         }
     }
 
@@ -1387,8 +1386,10 @@ public abstract class BaseTestCell {
 
             cell.getSheet().setArrayFormula("\"bar\"", CellRangeAddress.valueOf("A1"));
             assertEquals(CellType.FORMULA, cell.getCellType());
-            assertEquals(CellType.BOOLEAN, cell.getCachedFormulaResultType());
-            assertTrue(cell.getBooleanCellValue());
+            assertEquals("Expected a boolean cell-value, but had " + cell.getCachedFormulaResultType(),
+                    CellType.BOOLEAN, cell.getCachedFormulaResultType());
+            assertTrue("Expected a boolean cell-value, but had 'false'",
+                    cell.getBooleanCellValue());
         }
     }
 

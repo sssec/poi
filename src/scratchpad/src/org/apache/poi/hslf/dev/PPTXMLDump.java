@@ -26,6 +26,7 @@ import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import org.apache.poi.hslf.record.RecordTypes;
 import org.apache.poi.hslf.usermodel.HSLFSlideShow;
@@ -33,6 +34,7 @@ import org.apache.poi.poifs.filesystem.DirectoryNode;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 
 /**
  * Utility class which dumps raw contents of a ppt file into XML format
@@ -72,7 +74,7 @@ public final class PPTXMLDump {
             return bos.toByteArray();
         }
     }
-    
+
     /**
      * Dump the structure of the supplied PPT file into XML
      * @param outWriter <code>Writer</code> to write out
@@ -118,11 +120,11 @@ public final class PPTXMLDump {
 
             //read record header
             int info = LittleEndian.getUShort(data, pos);
-            pos += LittleEndian.SHORT_SIZE;
+            pos += LittleEndianConsts.SHORT_SIZE;
             int type = LittleEndian.getUShort(data, pos);
-            pos += LittleEndian.SHORT_SIZE;
+            pos += LittleEndianConsts.SHORT_SIZE;
             int size = (int)LittleEndian.getUInt(data, pos);
-            pos += LittleEndian.INT_SIZE;
+            pos += LittleEndianConsts.INT_SIZE;
 
             //get name of the record by type
             String recname = RecordTypes.forTypeID(type).name();
@@ -160,20 +162,18 @@ public final class PPTXMLDump {
     public void dumpPictures(byte[] data, int padding) throws IOException {
         int pos = 0;
         while (pos < data.length) {
-            byte[] header = new byte[PICT_HEADER_SIZE];
-
-            if(data.length - pos < header.length) {
+            if(data.length - pos < PICT_HEADER_SIZE) {
                 // corrupt file, cannot read header
                 return;
             }
-            System.arraycopy(data, pos, header, 0, header.length);
+            byte[] header = Arrays.copyOfRange(data, pos, pos + PICT_HEADER_SIZE);
             int size = LittleEndian.getInt(header, 4) - 17;
             if(size < 0) {
                 // corrupt file, negative image size
                 return;
             }
-            byte[] pictdata = IOUtils.safelyAllocate(size, MAX_RECORD_LENGTH);
-            System.arraycopy(data, pos + PICT_HEADER_SIZE, pictdata, 0, pictdata.length);
+
+            byte[] pictdata = IOUtils.safelyClone(data, pos + PICT_HEADER_SIZE, size, MAX_RECORD_LENGTH);
             pos += PICT_HEADER_SIZE + size;
 
             padding++;

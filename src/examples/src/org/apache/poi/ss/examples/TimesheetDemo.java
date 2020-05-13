@@ -17,14 +17,25 @@
 
 package org.apache.poi.ss.examples;
 
-import org.apache.poi.xssf.usermodel.*;
-import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-
-import java.util.Map;
-import java.util.HashMap;
 import java.io.FileOutputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.PrintSetup;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  * A weekly timesheet created using Apache POI.
@@ -33,16 +44,19 @@ import java.io.FileOutputStream;
  *
  * @author Yegor Kozlov
  */
-public class TimesheetDemo {
+@SuppressWarnings({"java:S106","java:S4823","java:S1192"})
+public final class TimesheetDemo {
     private static final String[] titles = {
             "Person",	"ID", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
             "Total\nHrs", "Overtime\nHrs", "Regular\nHrs"
     };
 
-    private static Object[][] sample_data = {
+    private static final Object[][] sample_data = {
             {"Yegor Kozlov", "YK", 5.0, 8.0, 10.0, 5.0, 5.0, 7.0, 6.0},
             {"Gisella Bronzetti", "GB", 4.0, 3.0, 1.0, 3.5, null, null, 4.0},
     };
+
+    private TimesheetDemo() {}
 
     public static void main(String[] args) throws Exception {
         Workbook wb;

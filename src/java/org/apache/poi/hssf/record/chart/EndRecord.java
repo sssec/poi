@@ -17,6 +17,10 @@
 
 package org.apache.poi.hssf.record.chart;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
+import org.apache.poi.hssf.record.HSSFRecordTypes;
 import org.apache.poi.hssf.record.RecordInputStream;
 import org.apache.poi.hssf.record.StandardRecord;
 import org.apache.poi.util.LittleEndianOutput;
@@ -40,15 +44,6 @@ public final class EndRecord extends StandardRecord {
     public EndRecord(RecordInputStream in) {
     }
 
-    public String toString()
-    {
-        StringBuilder buffer = new StringBuilder();
-
-        buffer.append("[END]\n");
-        buffer.append("[/END]\n");
-        return buffer.toString();
-    }
-
     public void serialize(LittleEndianOutput out) {
     }
 
@@ -61,8 +56,11 @@ public final class EndRecord extends StandardRecord {
         return sid;
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
-    @SuppressWarnings("squid:S2975")
+    @SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
     @Deprecated
     @Removal(version = "5.0.0")
     public EndRecord clone() {
@@ -73,5 +71,15 @@ public final class EndRecord extends StandardRecord {
     public EndRecord copy() {
         // No data so nothing to copy
        return new EndRecord();
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.END;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return null;
     }
 }

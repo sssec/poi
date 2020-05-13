@@ -17,9 +17,13 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.poi.ss.formula.Formula;
 import org.apache.poi.ss.formula.ptg.Ptg;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.util.GenericRecordUtil;
 
 /**
  * Formula Record (0x0006 / 0x0206 / 0x0406) - holds a formula in
@@ -60,11 +64,27 @@ public final class OldFormulaRecord extends OldCellRecord {
         field_6_parsed_expr = Formula.read(expression_len, ris, nBytesAvailable);
     }
 
+    /**
+     * @deprecated POI 4.1.3, will be removed in 5.0, use getCachedResultTypeEnum until switch to enum is fully done
+     */
+    @Deprecated
     public int getCachedResultType() {
         if (specialCachedValue == null) {
             return CellType.NUMERIC.getCode();
         }
         return specialCachedValue.getValueType();
+    }
+
+    /**
+     * Returns the type of the cached result
+     * @return A CellType
+     * @since POI 4.1.3
+     */
+    public CellType getCachedResultTypeEnum() {
+        if (specialCachedValue == null) {
+            return CellType.NUMERIC;
+        }
+        return specialCachedValue.getValueTypeEnum();
     }
 
     public boolean getCachedBooleanValue() {
@@ -103,10 +123,18 @@ public final class OldFormulaRecord extends OldCellRecord {
         return field_6_parsed_expr;
     }
 
-    protected void appendValueText(StringBuilder sb) {
-        sb.append("    .value       = ").append(getValue()).append("\n");
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.FORMULA;
     }
-    protected String getRecordName() {
-        return "Old Formula";
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "base", super::getGenericProperties,
+            "options", this::getOptions,
+            "formula", this::getFormula,
+            "value", this::getValue
+        );
     }
 }

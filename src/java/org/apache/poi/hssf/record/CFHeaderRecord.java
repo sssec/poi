@@ -52,6 +52,9 @@ public final class CFHeaderRecord extends CFHeaderBase {
         return sid;
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
     @SuppressWarnings("squid:S2975")
     @Deprecated
@@ -63,5 +66,10 @@ public final class CFHeaderRecord extends CFHeaderBase {
     @Override
     public CFHeaderRecord copy() {
         return new CFHeaderRecord(this);
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.CF_HEADER;
     }
 }

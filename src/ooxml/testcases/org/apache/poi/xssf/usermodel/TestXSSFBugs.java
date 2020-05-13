@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -91,6 +93,8 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.ss.util.CellUtil;
 import org.apache.poi.util.LocaleUtil;
 import org.apache.poi.util.NullOutputStream;
+import org.apache.poi.util.POILogFactory;
+import org.apache.poi.util.POILogger;
 import org.apache.poi.util.TempFile;
 import org.apache.poi.util.XMLHelper;
 import org.apache.poi.xssf.SXSSFITestDataProvider;
@@ -116,6 +120,8 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 
 public final class TestXSSFBugs extends BaseTestBugzillaIssues {
+    private static POILogger LOG = POILogFactory.getLogger(TestXSSFBugs.class);
+
     public TestXSSFBugs() {
         super(XSSFITestDataProvider.instance);
     }
@@ -284,11 +290,15 @@ public final class TestXSSFBugs extends BaseTestBugzillaIssues {
             assertEquals("NameB1", b1.getNameName());
             assertEquals("Sheet1", b1.getSheetName());
             assertEquals(-1, b1.getSheetIndex());
+            assertEquals(false, b1.isDeleted());
+            assertEquals(false, b1.isHidden());
 
             assertNotNull(b2);
             assertEquals("NameB2", b2.getNameName());
             assertEquals("Sheet1", b2.getSheetName());
             assertEquals(-1, b2.getSheetIndex());
+            assertEquals(false, b2.isDeleted());
+            assertEquals(false, b2.isHidden());
 
             assertNotNull(sheet2);
             assertEquals("NameSheet2", sheet2.getNameName());
@@ -916,7 +926,7 @@ public final class TestXSSFBugs extends BaseTestBugzillaIssues {
         assertEquals(text, cell.getStringCellValue());
 
         // Now add a 2nd, and check again
-        int fontAt = text.indexOf("\n", 6);
+        int fontAt = text.indexOf('\n', 6);
         cell.getRichStringCellValue().applyFont(10, fontAt + 1, font2);
         assertEquals(text, cell.getStringCellValue());
 
@@ -3463,6 +3473,77 @@ public final class TestXSSFBugs extends BaseTestBugzillaIssues {
         File file = XSSFTestDataSamples.getSampleFile("xlsx-corrupted.xlsx");
         try (XSSFWorkbook ignored = new XSSFWorkbook(file)) {
             fail("Should catch exception as the file is corrupted");
+        }
+    }
+
+    @Test
+    public void test58896WithFile() throws IOException {
+        try (Workbook wb = XSSFTestDataSamples.openSampleWorkbook("58896.xlsx")) {
+            Sheet sheet = wb.getSheetAt(0);
+            Instant start = Instant.now();
+
+            LOG.log(POILogger.INFO, "Autosizing columns...");
+
+            for (int i = 0; i < 3; ++i) {
+                LOG.log(POILogger.INFO, "Autosize " + i + " - " + Duration.between(start, Instant.now()));
+                sheet.autoSizeColumn(i);
+            }
+
+            for (int i = 0; i < 69 - 35 + 1; ++i)
+                for (int j = 0; j < 8; ++j) {
+                    int col = 3 + 2 + i * (8 + 2) + j;
+                    LOG.log(POILogger.INFO, "Autosize " + col + " - " + Duration.between(start, Instant.now()));
+                    sheet.autoSizeColumn(col);
+                }
+            LOG.log(POILogger.INFO, Duration.between(start, Instant.now()));
+        }
+    }
+
+    @Test
+    public void testBug63845() throws IOException {
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet();
+            Row row = sheet.createRow(0);
+
+            Cell cell = row.createCell(0, CellType.FORMULA);
+            cell.setCellFormula("SUM(B1:E1)");
+
+            assertNull("Element 'v' should not be set for formulas unless the value was calculated",
+                    ((XSSFCell) cell).getCTCell().getV());
+
+            try (Workbook wbBack = XSSFTestDataSamples.writeOutAndReadBack(wb)) {
+                Cell cellBack = wbBack.getSheetAt(0).getRow(0).getCell(0);
+                assertNull("Element 'v' should not be set for formulas unless the value was calculated",
+                        ((XSSFCell) cellBack).getCTCell().getV());
+
+                wbBack.getCreationHelper().createFormulaEvaluator().evaluateInCell(cellBack);
+
+                assertEquals("Element 'v' should be set now as the formula was calculated manually",
+                        "0.0", ((XSSFCell) cellBack).getCTCell().getV());
+            }
+        }
+    }
+
+    @Test
+    public void testBug63845_2() throws IOException {
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("test");
+            Row row = sheet.createRow(0);
+            row.createCell(0).setCellValue(2);
+            row.createCell(1).setCellValue(5);
+            row.createCell(2).setCellFormula("A1+B1");
+
+            try (Workbook wbBack = XSSFTestDataSamples.writeOutAndReadBack(wb)) {
+                Cell cellBack = wbBack.getSheetAt(0).getRow(0).getCell(2);
+
+                assertNull("Element 'v' should not be set for formulas unless the value was calculated",
+                        ((XSSFCell) cellBack).getCTCell().getV());
+
+                wbBack.getCreationHelper().createFormulaEvaluator().evaluateInCell(cellBack);
+
+                assertEquals("Element 'v' should be set now as the formula was calculated manually",
+                        "7.0", ((XSSFCell) cellBack).getCTCell().getV());
+            }
         }
     }
 }

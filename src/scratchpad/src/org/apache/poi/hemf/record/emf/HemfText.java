@@ -225,7 +225,7 @@ public class HemfText {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -266,7 +266,7 @@ public class HemfText {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -286,7 +286,7 @@ public class HemfText {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -311,7 +311,7 @@ public class HemfText {
             // A 32-bit unsigned integer that specifies the index of the logical font object
             // in the EMF Object Table
             fontIdx = (int)leis.readUInt();
-            int size = font.init(leis, (int)(recordSize-LittleEndianConsts.INT_SIZE));
+            long size = font.init(leis, (int)(recordSize-LittleEndianConsts.INT_SIZE));
             return size+LittleEndianConsts.INT_SIZE;
         }
 
@@ -338,7 +338,7 @@ public class HemfText {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }

@@ -94,7 +94,7 @@ public class HemfPlusHeader implements HemfPlusRecord {
 
         logicalDpiX = leis.readUInt();
         logicalDpiY = leis.readUInt();
-        return 4* LittleEndianConsts.INT_SIZE;
+        return 4L*LittleEndianConsts.INT_SIZE;
     }
 
     public EmfPlusGraphicsVersion getVersion() {
@@ -110,6 +110,7 @@ public class HemfPlusHeader implements HemfPlusRecord {
      *
      * @return {@code true} if dual-mode is enabled
      */
+    @SuppressWarnings("unused")
     public boolean isEmfPlusDualMode() {
         return (flags & 1) == 1;
     }

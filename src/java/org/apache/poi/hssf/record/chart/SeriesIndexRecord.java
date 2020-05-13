@@ -17,9 +17,13 @@
 
 package org.apache.poi.hssf.record.chart;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
+import org.apache.poi.hssf.record.HSSFRecordTypes;
 import org.apache.poi.hssf.record.RecordInputStream;
 import org.apache.poi.hssf.record.StandardRecord;
-import org.apache.poi.util.HexDump;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.Removal;
 
@@ -41,20 +45,6 @@ public final class SeriesIndexRecord extends StandardRecord {
         field_1_index = in.readShort();
     }
 
-    public String toString()
-    {
-        StringBuilder buffer = new StringBuilder();
-
-        buffer.append("[SINDEX]\n");
-        buffer.append("    .index                = ")
-            .append("0x").append(HexDump.toHex(  getIndex ()))
-            .append(" (").append( getIndex() ).append(" )");
-        buffer.append(System.getProperty("line.separator"));
-
-        buffer.append("[/SINDEX]\n");
-        return buffer.toString();
-    }
-
     public void serialize(LittleEndianOutput out) {
         out.writeShort(field_1_index);
     }
@@ -68,6 +58,9 @@ public final class SeriesIndexRecord extends StandardRecord {
         return sid;
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
     @SuppressWarnings("squid:S2975")
     @Deprecated
@@ -95,5 +88,15 @@ public final class SeriesIndexRecord extends StandardRecord {
     public void setIndex(short field_1_index)
     {
         this.field_1_index = field_1_index;
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.SERIES_INDEX;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties("index", this::getIndex);
     }
 }

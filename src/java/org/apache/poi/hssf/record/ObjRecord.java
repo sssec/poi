@@ -20,7 +20,10 @@ package org.apache.poi.hssf.record;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.HexDump;
 import org.apache.poi.util.LittleEndian;
 import org.apache.poi.util.LittleEndianByteArrayInputStream;
@@ -140,18 +143,6 @@ public final class ObjRecord extends Record {
     }
 
     @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("[OBJ]\n");
-        for (final SubRecord record : subrecords) {
-            sb.append("SUBRECORD: ").append(record);
-        }
-        sb.append("[/OBJ]\n");
-        return sb.toString();
-    }
-
-    @Override
     public int getRecordSize() {
         if (_uninterpretedData != null) {
             return _uninterpretedData.length + 4;
@@ -224,8 +215,11 @@ public final class ObjRecord extends Record {
         return subrecords.add(o);
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
-    @SuppressWarnings("squid:S2975")
+    @SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
     @Deprecated
     @Removal(version = "5.0.0")
     public ObjRecord clone() {
@@ -235,5 +229,23 @@ public final class ObjRecord extends Record {
     @Override
     public ObjRecord copy() {
         return new ObjRecord(this);
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.OBJ;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "uninterpretedData", () -> _uninterpretedData,
+            "paddedToQuadByteMultiple", () -> _isPaddedToQuadByteMultiple
+        );
+    }
+
+    @Override
+    public List<SubRecord> getGenericChildren() {
+        return getSubRecords();
     }
 }

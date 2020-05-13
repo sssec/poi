@@ -48,11 +48,14 @@ import org.apache.poi.sl.usermodel.VerticalAlignment;
  *
  * @author Yegor Kozlov
  */
+@SuppressWarnings("java:S1192")
 public final class ApacheconEU08 {
 
+    private ApacheconEU08() {}
+
     public static void main(String[] args) throws IOException {
+        // use HSLFSlideShow or XMLSlideShow
         try (SlideShow<?,?> ppt = new HSLFSlideShow()) {
-            // SlideShow<?,?> ppt = new XMLSlideShow();
             ppt.setPageSize(new Dimension(720, 540));
 
             slide1(ppt);
@@ -389,11 +392,12 @@ public final class ApacheconEU08 {
         Graphics2D graphics = new SLGraphics(group);
 
         //draw a simple bar graph
-        int x = bounds.x + 50, y = bounds.y + 50;
+        int x = bounds.x + 50;
+        int y = bounds.y + 50;
         graphics.setFont(new Font("Arial", Font.BOLD, 10));
         for (int i = 0, idx = 1; i < def.length; i+=2, idx++) {
             graphics.setColor(Color.black);
-            int width = ((Integer)def[i+1]).intValue();
+            int width = (Integer) def[i + 1];
             graphics.drawString("Q" + idx, x-20, y+20);
             graphics.drawString(width + "%", x + width + 10, y + 20);
             graphics.setColor((Color)def[i]);
@@ -434,7 +438,7 @@ public final class ApacheconEU08 {
             tp.get(i).getTextRuns().get(0).setFontSize(24d);
             tp.get(i).setIndentLevel(1);
         }
-        
+
         box2.setAnchor(new Rectangle(36, 126, 648, 400));
     }
 
@@ -449,7 +453,7 @@ public final class ApacheconEU08 {
         TextBox<?,?> box2 = slide.createTextBox();
         box2.setTextPlaceholder(TextPlaceholder.CENTER_BODY);
         box2.setText(
-                "http://poi.apache.org/hslf/\r" +
+                "https://poi.apache.org/hslf/\r" +
                 "http://people.apache.org/~yegor");
         box2.setAnchor(new Rectangle(108, 306, 504, 138));
     }

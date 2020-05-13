@@ -17,9 +17,13 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.poi.hssf.record.common.FtrHeader;
 import org.apache.poi.hssf.record.common.FutureRecord;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.Removal;
 
@@ -85,6 +89,9 @@ public final class CFHeader12Record extends CFHeaderBase implements FutureRecord
         return futureHeader.getAssociatedRange();
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
     @SuppressWarnings("squid:S2975")
     @Deprecated
@@ -96,5 +103,18 @@ public final class CFHeader12Record extends CFHeaderBase implements FutureRecord
     @Override
     public CFHeader12Record copy() {
         return new CFHeader12Record(this);
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.CF_HEADER_12;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "base", super::getGenericProperties,
+            "futureHeader", this::getFutureHeader
+        );
     }
 }

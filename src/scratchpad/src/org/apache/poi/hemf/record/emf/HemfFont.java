@@ -237,6 +237,7 @@ public class HemfFont extends HwmfFont {
 
     protected LogFontDetails details;
 
+    @SuppressWarnings("unused")
     @Override
     public int init(LittleEndianInputStream leis, long recordSize) throws IOException {
         // A 32-bit signed integer that specifies the height, in logical units, of the font's
@@ -460,17 +461,17 @@ public class HemfFont extends HwmfFont {
             // A 32-bit unsigned integer that specifies the number of elements in the
             // Values array. It MUST be in the range 0 to 16, inclusive.
             int numAxes = leis.readInt();
-            assert (0 <= numAxes && numAxes <= 16);
+            size += 2*LittleEndianConsts.INT_SIZE;
 
             // An optional array of 32-bit signed integers that specify the values of the font axes of a
             // multiple master, OpenType font. The maximum number of values in the array is 16.
-            if (numAxes > 0) {
+            if (0 <= numAxes && numAxes <= 16) {
                 logEx.designVector = new int[numAxes];
                 for (int i=0; i<numAxes; i++) {
                     logEx.designVector[i] = leis.readInt();
                 }
+                size += numAxes*LittleEndianConsts.INT_SIZE;
             }
-            size += (2+numAxes)*LittleEndianConsts.INT_SIZE;
         }
 
         return size;
@@ -517,7 +518,7 @@ public class HemfFont extends HwmfFont {
     }
 
     @Override
-    protected int readString(LittleEndianInputStream leis, StringBuilder sb, int limit) throws IOException {
+    protected int readString(LittleEndianInputStream leis, StringBuilder sb, int limit) {
         sb.setLength(0);
         byte[] buf = new byte[limit * 2];
         leis.readFully(buf);
@@ -531,9 +532,9 @@ public class HemfFont extends HwmfFont {
             b1 = buf[readBytes++];
             b2 = buf[readBytes++];
         } while ((b1 != 0 || b2 != 0) && b1 != -1 && b2 != -1 && readBytes <= limit*2);
-
         sb.append(new String(buf, 0, readBytes-2, StandardCharsets.UTF_16LE));
 
         return limit*2;
     }
 }
+

@@ -17,8 +17,12 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.poi.hssf.record.cont.ContinuableRecord;
 import org.apache.poi.hssf.record.cont.ContinuableRecordOutput;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.Removal;
 import org.apache.poi.util.StringUtil;
 
@@ -82,14 +86,11 @@ public final class StringRecord extends ContinuableRecord {
         _is16bitUnicode = StringUtil.hasMultibyte(string);
     }
 
-    public String toString() {
-        return "[STRING]\n" +
-                "    .string            = " + _text + "\n" +
-                "[/STRING]\n";
-    }
-
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
-    @SuppressWarnings("squid:S2975")
+    @SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
     @Deprecated
     @Removal(version = "5.0.0")
     public StringRecord clone() {
@@ -98,5 +99,18 @@ public final class StringRecord extends ContinuableRecord {
 
     public StringRecord copy() {
         return new StringRecord(this);
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.STRING;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "is16bitUnicode", () -> _is16bitUnicode,
+            "text", this::getString
+        );
     }
 }

@@ -19,6 +19,7 @@ package org.apache.poi.hemf.record.emf;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.poi.util.LittleEndianConsts;
 import org.apache.poi.util.LittleEndianInputStream;
@@ -44,6 +45,9 @@ public class HemfRecordIterator implements Iterator<HemfRecord> {
 
     @Override
     public HemfRecord next() {
+        if (!hasNext()) {
+            throw new NoSuchElementException();
+        }
         HemfRecord toReturn = currentRecord;
         currentRecord = (currentRecord instanceof HemfMisc.EmfEof) ? null : _next();
         return toReturn;
@@ -74,7 +78,9 @@ public class HemfRecordIterator implements Iterator<HemfRecord> {
         try {
             long remBytes = recordSize - HEADER_SIZE;
             long readBytes = record.init(stream, remBytes, recordId);
-            assert (readBytes <= remBytes);
+            if (readBytes > remBytes) {
+                throw new RecordFormatException("Record limit exceeded - readBytes: "+readBytes+" / remBytes: "+remBytes);
+            }
             stream.skipFully((int) (remBytes - readBytes));
         } catch (RecordFormatException e) {
             throw e;

@@ -17,10 +17,12 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.poi.hssf.util.CellRangeAddress8Bit;
-import org.apache.poi.util.HexDump;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.Removal;
 
@@ -149,17 +151,6 @@ public final class SelectionRecord extends StandardRecord {
     }
 
     @Override
-    public String toString() {
-        return "[SELECTION]\n" +
-                "    .pane            = " + HexDump.byteToHex(getPane()) + "\n" +
-                "    .activecellrow   = " + HexDump.shortToHex(getActiveCellRow()) + "\n" +
-                "    .activecellcol   = " + HexDump.shortToHex(getActiveCellCol()) + "\n" +
-                "    .activecellref   = " + HexDump.shortToHex(getActiveCellRef()) + "\n" +
-                "    .numrefs         = " + HexDump.shortToHex(field_6_refs.length) + "\n" +
-                "[/SELECTION]\n";
-    }
-
-    @Override
     protected int getDataSize() {
         return 9 // 1 byte + 4 shorts
             + CellRangeAddress8Bit.getEncodedSize(field_6_refs.length);
@@ -182,8 +173,11 @@ public final class SelectionRecord extends StandardRecord {
         return sid;
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
-    @SuppressWarnings("squid:S2975")
+    @SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
     @Deprecated
     @Removal(version = "5.0.0")
     public SelectionRecord clone() {
@@ -193,5 +187,21 @@ public final class SelectionRecord extends StandardRecord {
     @Override
     public SelectionRecord copy() {
         return new SelectionRecord(this);
+    }
+
+    @Override
+    public HSSFRecordTypes getGenericRecordType() {
+        return HSSFRecordTypes.SELECTION;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "pane", this::getPane,
+            "activeCellRow", this::getActiveCellRow,
+            "activeCellCol", this::getActiveCellCol,
+            "activeCellRef", this::getActiveCellRef,
+            "refs", () -> field_6_refs
+        );
     }
 }

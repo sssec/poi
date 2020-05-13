@@ -17,8 +17,15 @@
 
 package org.apache.poi.hssf.record;
 
+import static org.apache.poi.util.GenericRecordUtil.getEnumBitsAsString;
+
+import java.util.Map;
+import java.util.function.Supplier;
+
+import org.apache.poi.common.usermodel.GenericRecord;
 import org.apache.poi.ss.formula.eval.ErrorEval;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.HexDump;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndianOutput;
@@ -29,7 +36,7 @@ import org.apache.poi.util.LittleEndianOutput;
  * values that are decoded/encoded by this class.
  */
 @Internal
-public final class FormulaSpecialCachedValue {
+public final class FormulaSpecialCachedValue implements GenericRecord {
     /** deliberately chosen by Excel in order to encode other values within Double NaNs */
     private static final long BIT_MARKER = 0xFFFF000000000000L;
     private static final int VARIABLE_DATA_LENGTH = 6;
@@ -137,6 +144,10 @@ public final class FormulaSpecialCachedValue {
         return getClass().getName() + '[' + formatValue() + ']';
     }
 
+    /**
+     * @deprecated POI 4.1.3, will be removed in 5.0, use getValueTypeEnum until switch to enum is fully done
+     */
+    @Deprecated
     public int getValueType() {
         int typeCode = getTypeCode();
         switch (typeCode) {
@@ -147,6 +158,25 @@ public final class FormulaSpecialCachedValue {
                 return CellType.BOOLEAN.getCode();
             case ERROR_CODE:
                 return CellType.ERROR.getCode();
+        }
+        throw new IllegalStateException("Unexpected type id (" + typeCode + ")");
+    }
+
+    /**
+     * Returns the type of the cached value
+     * @return A CellType
+     * @since POI 4.1.3
+     */
+    public CellType getValueTypeEnum() {
+        int typeCode = getTypeCode();
+        switch (typeCode) {
+            case EMPTY: // is this correct?
+            case STRING:
+                return CellType.STRING;
+            case BOOLEAN:
+                return CellType.BOOLEAN;
+            case ERROR_CODE:
+                return CellType.ERROR;
         }
         throw new IllegalStateException("Unexpected type id (" + typeCode + ")");
     }
@@ -163,5 +193,30 @@ public final class FormulaSpecialCachedValue {
             throw new IllegalStateException("Not an error cached value - " + formatValue());
         }
         return getDataValue();
+    }
+
+    private Object getGenericValue() {
+        int typeCode = getTypeCode();
+        switch (typeCode) {
+            case EMPTY: // is this correct?
+                return null;
+            case STRING:
+                return "string";
+            case BOOLEAN:
+                return getBooleanValue();
+            case ERROR_CODE:
+                return getErrorValue();
+        }
+        throw new IllegalStateException("Unexpected type id (" + typeCode + ")");
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "value", this::getGenericValue,
+            "typeCode", getEnumBitsAsString(this::getTypeCode,
+                new int[]{STRING,BOOLEAN,ERROR_CODE,EMPTY},
+                new String[]{"STRING","BOOLEAN","ERROR_CODE","EMPTY"})
+        );
     }
 }

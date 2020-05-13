@@ -17,6 +17,9 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.poi.hssf.model.HSSFFormulaParser;
 import org.apache.poi.hssf.record.cf.BorderFormatting;
 import org.apache.poi.hssf.record.cf.FontFormatting;
@@ -27,6 +30,7 @@ import org.apache.poi.ss.formula.FormulaType;
 import org.apache.poi.ss.formula.ptg.Ptg;
 import org.apache.poi.util.BitField;
 import org.apache.poi.util.BitFieldFactory;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.POILogFactory;
 import org.apache.poi.util.POILogger;
@@ -458,6 +462,9 @@ public abstract class CFRuleBase extends StandardRecord {
         return HSSFFormulaParser.parse(formula, sheet.getWorkbook(), FormulaType.CELL, sheetIndex);
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
     @SuppressWarnings("squid:S2975")
     @Deprecated
@@ -466,4 +473,19 @@ public abstract class CFRuleBase extends StandardRecord {
 
     @Override
     public abstract CFRuleBase copy();
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties(
+            "conditionType", this::getConditionType,
+            "comparisonOperation", this::getComparisonOperation,
+            "formattingOptions", this::getOptions,
+            "formattingNotUsed", () -> formatting_not_used,
+            "fontFormatting", this::getFontFormatting,
+            "borderFormatting", this::getBorderFormatting,
+            "patternFormatting", this::getPatternFormatting,
+            "formula1", this::getFormula1,
+            "formula2", this::getFormula2
+        );
+    }
 }

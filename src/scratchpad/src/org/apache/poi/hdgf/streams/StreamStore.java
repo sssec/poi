@@ -34,12 +34,11 @@ public class StreamStore { // TODO - instantiable superclass
 	 * Creates a new, non compressed Stream Store
 	 */
 	protected StreamStore(byte[] data, int offset, int length) {
-		contents = IOUtils.safelyAllocate(length, MAX_RECORD_LENGTH);
-		System.arraycopy(data, offset, contents, 0, length);
+		contents = IOUtils.safelyClone(data, offset, length, MAX_RECORD_LENGTH);
 	}
 
 	protected void prependContentsWith(byte[] b) {
-		byte[] newContents = IOUtils.safelyAllocate(contents.length + b.length, MAX_RECORD_LENGTH);
+		byte[] newContents = IOUtils.safelyAllocate(contents.length + (long)b.length, MAX_RECORD_LENGTH);
 		System.arraycopy(b, 0, newContents, 0, b.length);
 		System.arraycopy(contents, 0, newContents, b.length, contents.length);
 		contents = newContents;

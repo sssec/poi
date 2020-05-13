@@ -100,6 +100,7 @@ public class HemfMisc {
             return HemfRecordType.eof;
         }
 
+        @SuppressWarnings("unused")
         @Override
         public long init(LittleEndianInputStream leis, long recordSize, long recordId) throws IOException {
             final int startIdx = leis.getReadIndex();
@@ -112,7 +113,7 @@ public class HemfMisc {
             int size = 2 * LittleEndianConsts.INT_SIZE;
 
             if (nPalEntries > 0 && offPalEntries > 0) {
-                int undefinedSpace1 = (int) (offPalEntries - (size + HEADER_SIZE));
+                int undefinedSpace1 = offPalEntries - (size + HEADER_SIZE);
                 assert (undefinedSpace1 >= 0);
                 leis.skipFully(undefinedSpace1);
                 size += undefinedSpace1;
@@ -165,7 +166,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -191,7 +192,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -213,7 +214,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -240,7 +241,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -260,7 +261,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -283,7 +284,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -306,7 +307,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -331,7 +332,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -359,7 +360,7 @@ public class HemfMisc {
             colorRef = new HwmfColorRef();
             int size = colorRef.init(leis);
             brushHatch = HwmfHatchStyle.valueOf((int) leis.readUInt());
-            return size + 3 * LittleEndianConsts.INT_SIZE;
+            return size + 3L * LittleEndianConsts.INT_SIZE;
         }
 
         @Override
@@ -385,7 +386,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -454,7 +455,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -477,7 +478,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -512,7 +513,7 @@ public class HemfMisc {
 
             int size = colorRef.init(leis);
 
-            return size + 4 * LittleEndianConsts.INT_SIZE;
+            return size + 4L * LittleEndianConsts.INT_SIZE;
         }
 
         @Override
@@ -538,7 +539,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -668,7 +669,7 @@ public class HemfMisc {
         }
 
         @Override
-        public Enum getGenericRecordType() {
+        public HemfRecordType getGenericRecordType() {
             return getEmfRecordType();
         }
     }
@@ -791,7 +792,7 @@ public class HemfMisc {
             // An XForm object that defines a two-dimensional linear transform in logical units.
             // This transform is used according to the ModifyWorldTransformMode to define a new value for
             // the world-space to page-space transform in the playback device context.
-            int size = readXForm(leis, xForm);
+            long size = readXForm(leis, xForm);
 
             // A 32-bit unsigned integer that specifies how the transform specified in Xform is used.
             // This value MUST be in the ModifyWorldTransformMode enumeration

@@ -48,8 +48,11 @@ public final class HorizontalPageBreakRecord extends PageBreakRecord {
 		return sid;
 	}
 
+	/**
+	 * @deprecated use {@link #copy()} instead
+	 */
 	@Override
-	@SuppressWarnings("squid:S2975")
+	@SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
 	@Deprecated
 	@Removal(version = "5.0.0")
 	public PageBreakRecord clone() {
@@ -59,5 +62,10 @@ public final class HorizontalPageBreakRecord extends PageBreakRecord {
 	@Override
 	public HorizontalPageBreakRecord copy() {
 		return new HorizontalPageBreakRecord(this);
+	}
+
+	@Override
+	public HSSFRecordTypes getGenericRecordType() {
+		return HSSFRecordTypes.HORIZONTAL_PAGE_BREAK;
 	}
 }

@@ -17,12 +17,15 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.poi.ss.formula.Formula;
 import org.apache.poi.ss.formula.ptg.Ptg;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.util.BitField;
 import org.apache.poi.util.BitFieldFactory;
-import org.apache.poi.util.HexDump;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.Removal;
 
@@ -117,11 +120,27 @@ public final class FormulaRecord extends CellRecord {
 				specialCachedValue.getTypeCode() == FormulaSpecialCachedValue.STRING;
 	}
 
+	/**
+	 * @deprecated POI 4.1.3, will be removed in 5.0, use getCachedResultTypeEnum until switch to enum is fully done
+	 */
+	@Deprecated
 	public int getCachedResultType() {
 		if (specialCachedValue == null) {
 			return CellType.NUMERIC.getCode();
 		}
 		return specialCachedValue.getValueType();
+	}
+
+	/**
+	 * Returns the type of the cached result
+	 * @return A CellType
+	 * @since POI 4.1.3
+	 */
+	public CellType getCachedResultTypeEnum() {
+		if (specialCachedValue == null) {
+			return CellType.NUMERIC;
+		}
+		return specialCachedValue.getValueTypeEnum();
 	}
 
 	public boolean getCachedBooleanValue() {
@@ -227,33 +246,11 @@ public final class FormulaRecord extends CellRecord {
 		return "FORMULA";
 	}
 
+	/**
+	 * @deprecated use {@link #copy()} instead
+	 */
 	@Override
-	protected void appendValueText(StringBuilder sb) {
-		sb.append("  .value	 = ");
-		if (specialCachedValue == null) {
-			sb.append(field_4_value).append("\n");
-		} else {
-			sb.append(specialCachedValue.formatDebugString()).append("\n");
-		}
-		sb.append("  .options   = ").append(HexDump.shortToHex(getOptions())).append("\n");
-		sb.append("    .alwaysCalc= ").append(isAlwaysCalc()).append("\n");
-		sb.append("    .calcOnLoad= ").append(isCalcOnLoad()).append("\n");
-		sb.append("    .shared    = ").append(isSharedFormula()).append("\n");
-		sb.append("  .zero      = ").append(HexDump.intToHex(field_6_zero)).append("\n");
-
-		Ptg[] ptgs = field_8_parsed_expr.getTokens();
-		for (int k = 0; k < ptgs.length; k++ ) {
-			if (k>0) {
-				sb.append("\n");
-			}
-			sb.append("    Ptg[").append(k).append("]=");
-			Ptg ptg = ptgs[k];
-			sb.append(ptg).append(ptg.getRVAType());
-		}
-	}
-
-	@Override
-	@SuppressWarnings("squid:S2975")
+	@SuppressWarnings({"squid:S2975", "MethodDoesntCallSuperMethod"})
 	@Deprecated
 	@Removal(version = "5.0.0")
 	public FormulaRecord clone() {
@@ -263,6 +260,25 @@ public final class FormulaRecord extends CellRecord {
 	@Override
 	public FormulaRecord copy() {
 		return new FormulaRecord(this);
+	}
+
+	@Override
+	public HSSFRecordTypes getGenericRecordType() {
+		return HSSFRecordTypes.FORMULA;
+	}
+
+	@Override
+	public Map<String, Supplier<?>> getGenericProperties() {
+		return GenericRecordUtil.getGenericProperties(
+			"base", super::getGenericProperties,
+			"options", this::getOptions,
+			"alwaysCalc", this::isAlwaysCalc,
+			"calcOnLoad", this::isCalcOnLoad,
+			"shared", this::isSharedFormula,
+			"zero", () -> field_6_zero,
+			"value", () -> specialCachedValue == null ? field_4_value : specialCachedValue,
+			"formula", this::getFormula
+		);
 	}
 }
 

@@ -43,7 +43,10 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 /**
  * Build a bar chart from a template docx
  */
-public class BarChartExample {
+@SuppressWarnings({"java:S106","java:S4823","java:S1192"})
+public final class BarChartExample {
+    private BarChartExample() {}
+
     private static void usage(){
         System.out.println("Usage: BarChartExample <bar-chart-template.docx> <bar-chart-data.txt>");
         System.out.println("    bar-chart-template.docx     template with a bar chart");

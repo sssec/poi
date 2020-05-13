@@ -17,6 +17,9 @@
 
 package org.apache.poi.hssf.record;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.poi.util.LittleEndianInput;
 import org.apache.poi.util.LittleEndianOutput;
 import org.apache.poi.util.RecordFormatException;
@@ -39,6 +42,10 @@ public final class EndSubRecord extends SubRecord {
      * @param size must be 0
      */
     public EndSubRecord(LittleEndianInput in, int size) {
+        this(in, size, -1);
+    }
+
+    EndSubRecord(LittleEndianInput in, int size, int cmoOt) {
         if ((size & 0xFF) != ENCODED_SIZE) { // mask out random crap in upper byte
             throw new RecordFormatException("Unexpected size (" + size + ")");
         }
@@ -47,16 +54,6 @@ public final class EndSubRecord extends SubRecord {
     @Override
     public boolean isTerminating(){
         return true;
-    }
-
-    public String toString()
-    {
-        StringBuilder buffer = new StringBuilder();
-
-        buffer.append("[ftEnd]\n");
-
-        buffer.append("[/ftEnd]\n");
-        return buffer.toString();
     }
 
     public void serialize(LittleEndianOutput out) {
@@ -73,6 +70,9 @@ public final class EndSubRecord extends SubRecord {
         return sid;
     }
 
+    /**
+     * @deprecated use {@link #copy()} instead
+     */
     @Override
     @SuppressWarnings("squid:S2975")
     @Deprecated
@@ -84,5 +84,15 @@ public final class EndSubRecord extends SubRecord {
     @Override
     public EndSubRecord copy() {
         return new EndSubRecord();
+    }
+
+    @Override
+    public SubRecordTypes getGenericRecordType() {
+        return SubRecordTypes.END;
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return null;
     }
 }

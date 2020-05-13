@@ -7,7 +7,7 @@
     <version>4.1.3-SNAPSHOT</version>
     <name>Apache POI - the Java API for Microsoft Documents</name>
     <description>Maven build of Apache POI for Sonar checks</description>
-    <url>http://poi.apache.org/</url>
+    <url>https://poi.apache.org/</url>
 
     <mailingLists>
         <mailingList>
@@ -74,10 +74,10 @@
 
         <sonar.organization>apache</sonar.organization>
         <sonar.projectKey>poi-parent</sonar.projectKey>
-        <sonar.moduleKey>${artifactId}</sonar.moduleKey>
+        <sonar.moduleKey>${project.artifactId}</sonar.moduleKey>
 
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <sonar.jacoco.reportPaths>target/jacoco.exec</sonar.jacoco.reportPaths>
+        <!-- sonar.jacoco.reportPaths>target/jacoco.exec</sonar.jacoco.reportPaths -->
         <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
         <!-- define some of the third-party or plugin-versions globally to use the same in all modules -->
@@ -88,7 +88,7 @@
         <maven.plugin.resources.version>3.1.0</maven.plugin.resources.version>
         <maven.plugin.jar.version>3.2.0</maven.plugin.jar.version>
         <maven.plugin.clean.version>3.1.0</maven.plugin.clean.version>
-        <maven.plugin.download.version>1.1.0</maven.plugin.download.version>
+        <maven.plugin.download.version>1.5.0</maven.plugin.download.version>
         <maven.plugin.antrun.version>1.8</maven.plugin.antrun.version>
         <maven.plugin.surefire.version>3.0.0-M4</maven.plugin.surefire.version>
     </properties>

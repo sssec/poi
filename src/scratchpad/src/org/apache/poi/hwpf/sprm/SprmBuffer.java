@@ -23,6 +23,7 @@ import org.apache.poi.common.Duplicatable;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 import org.apache.poi.util.Removal;
 
 @Internal
@@ -56,44 +57,44 @@ public final class SprmBuffer implements Duplicatable {
     }
 
     public SprmBuffer(int sprmsStartOffset) {
-        _buf = IOUtils.safelyAllocate(sprmsStartOffset + 4, MAX_RECORD_LENGTH);
+        _buf = IOUtils.safelyAllocate(sprmsStartOffset + 4L, MAX_RECORD_LENGTH);
         _offset = sprmsStartOffset;
         _sprmsStartOffset = sprmsStartOffset;
     }
 
     public void addSprm(short opcode, byte operand) {
-        int addition = LittleEndian.SHORT_SIZE + LittleEndian.BYTE_SIZE;
+        int addition = LittleEndianConsts.SHORT_SIZE + LittleEndianConsts.BYTE_SIZE;
         ensureCapacity(addition);
         LittleEndian.putShort(_buf, _offset, opcode);
-        _offset += LittleEndian.SHORT_SIZE;
+        _offset += LittleEndianConsts.SHORT_SIZE;
         _buf[_offset++] = operand;
     }
 
     public void addSprm(short opcode, byte[] operand) {
-        int addition = LittleEndian.SHORT_SIZE + LittleEndian.BYTE_SIZE + operand.length;
+        int addition = LittleEndianConsts.SHORT_SIZE + LittleEndianConsts.BYTE_SIZE + operand.length;
         ensureCapacity(addition);
         LittleEndian.putShort(_buf, _offset, opcode);
-        _offset += LittleEndian.SHORT_SIZE;
+        _offset += LittleEndianConsts.SHORT_SIZE;
         _buf[_offset++] = (byte) operand.length;
         System.arraycopy(operand, 0, _buf, _offset, operand.length);
     }
 
     public void addSprm(short opcode, int operand) {
-        int addition = LittleEndian.SHORT_SIZE + LittleEndian.INT_SIZE;
+        int addition = LittleEndianConsts.SHORT_SIZE + LittleEndianConsts.INT_SIZE;
         ensureCapacity(addition);
         LittleEndian.putShort(_buf, _offset, opcode);
-        _offset += LittleEndian.SHORT_SIZE;
+        _offset += LittleEndianConsts.SHORT_SIZE;
         LittleEndian.putInt(_buf, _offset, operand);
-        _offset += LittleEndian.INT_SIZE;
+        _offset += LittleEndianConsts.INT_SIZE;
     }
 
     public void addSprm(short opcode, short operand) {
-        int addition = LittleEndian.SHORT_SIZE + LittleEndian.SHORT_SIZE;
+        int addition = LittleEndianConsts.SHORT_SIZE + LittleEndianConsts.SHORT_SIZE;
         ensureCapacity(addition);
         LittleEndian.putShort(_buf, _offset, opcode);
-        _offset += LittleEndian.SHORT_SIZE;
+        _offset += LittleEndianConsts.SHORT_SIZE;
         LittleEndian.putShort(_buf, _offset, operand);
-        _offset += LittleEndian.SHORT_SIZE;
+        _offset += LittleEndianConsts.SHORT_SIZE;
     }
 
     public void append(byte[] grpprl) {
@@ -126,9 +127,8 @@ public final class SprmBuffer implements Duplicatable {
             // commented - buffer shall not contain any additional bytes --
             // sergey
             // byte[] newBuf = new byte[_offset + addition + 6];
-            byte[] newBuf = IOUtils.safelyAllocate(_offset + addition, MAX_RECORD_LENGTH);
-            System.arraycopy(_buf, 0, newBuf, 0, _buf.length);
-            _buf = newBuf;
+            IOUtils.safelyAllocateCheck(_offset + (long)addition, MAX_RECORD_LENGTH);
+            _buf = Arrays.copyOf(_buf, _offset + addition);
         }
     }
 

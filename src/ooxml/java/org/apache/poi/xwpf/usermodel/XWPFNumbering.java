@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.xml.namespace.QName;
@@ -151,7 +152,7 @@ public class XWPFNumbering extends POIXMLDocumentPart {
         CTNum ctNum = this.ctNumbering.addNewNum();
         ctNum.addNewAbstractNumId();
         ctNum.getAbstractNumId().setVal(abstractNumID);
-        ctNum.setNumId(BigInteger.valueOf(nums.size() + 1));
+        ctNum.setNumId(BigInteger.valueOf(nums.size() + 1L));
         XWPFNum num = new XWPFNum(ctNum, this);
         nums.add(num);
         return ctNum.getNumId();
@@ -237,7 +238,7 @@ public class XWPFNumbering extends POIXMLDocumentPart {
         if (abstractNum.getAbstractNum() != null) { // Use the current CTAbstractNum if it exists
             ctNumbering.addNewAbstractNum().set(abstractNum.getAbstractNum());
         } else {
-            ctNumbering.addNewAbstractNum();
+            abstractNum.setCtAbstractNum(ctNumbering.addNewAbstractNum());
             abstractNum.getAbstractNum().setAbstractNumId(BigInteger.valueOf(pos));
             ctNumbering.setAbstractNumArray(pos, abstractNum.getAbstractNum());
         }
@@ -283,5 +284,20 @@ public class XWPFNumbering extends POIXMLDocumentPart {
             return null;
         return num.getCTNum().getAbstractNumId().getVal();
     }
+
+    /**
+     * @return all abstractNums
+     */
+    public List<XWPFAbstractNum> getAbstractNums() {
+        return Collections.unmodifiableList(abstractNums);
+    }
+
+    /**
+     * @return all nums
+     */
+    public List<XWPFNum> getNums() {
+        return Collections.unmodifiableList(nums);
+    }
+
 }
 

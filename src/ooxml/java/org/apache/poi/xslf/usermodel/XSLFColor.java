@@ -19,9 +19,8 @@
 package org.apache.poi.xslf.usermodel;
 
 import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+
+import javax.xml.namespace.QName;
 
 import org.apache.poi.sl.draw.DrawPaint;
 import org.apache.poi.sl.usermodel.AbstractColorStyle;
@@ -31,6 +30,7 @@ import org.apache.poi.util.Beta;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.POILogFactory;
 import org.apache.poi.util.POILogger;
+import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTColor;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTFontReference;
@@ -42,7 +42,6 @@ import org.openxmlformats.schemas.drawingml.x2006.main.CTScRgbColor;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTSchemeColor;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTSolidColorFillProperties;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTSystemColor;
-import org.w3c.dom.Node;
 
 /**
  * Encapsulates logic to read color definitions from DrawingML and convert them to java.awt.Color
@@ -50,7 +49,8 @@ import org.w3c.dom.Node;
 @Beta
 @Internal
 public class XSLFColor {
-    private final static POILogger LOGGER = POILogFactory.getLogger(XSLFColor.class);
+    private static final POILogger LOGGER = POILogFactory.getLogger(XSLFColor.class);
+    private static final QName VAL_ATTR = new QName("val");
 
     private XmlObject _xmlObject;
     private Color _color;
@@ -111,8 +111,8 @@ public class XSLFColor {
     }
 
     private Color toColor(CTScRgbColor scrgb) {
-        // color in percentage is in linear RGB color space, i.e. needs to be gamma corrected for AWT color
-        return new Color(DrawPaint.lin2srgb(scrgb.getR()), DrawPaint.lin2srgb(scrgb.getG()), DrawPaint.lin2srgb(scrgb.getB()));
+        // percental [0..100000] scRGB color space  needs to be gamma corrected for AWT/sRGB colorspace
+        return DrawPaint.SCRGB2RGB(scrgb.getR()/100_000d,scrgb.getG()/100_000d,scrgb.getB()/100_000d);
     }
 
     private Color toColor(CTSRgbColor srgb) {
@@ -133,35 +133,46 @@ public class XSLFColor {
     }
 
     private Color toColor(XmlObject obj, XSLFTheme theme) {
+        if (obj == null) {
+            return _phClr == null ? null : toColor(_phClr, theme);
+        }
+
+        final XmlCursor cur = obj.newCursor();
         Color color = null;
-        List<XmlObject> xo = new ArrayList<>();
-        xo.add(obj);
-        xo.addAll(Arrays.asList(obj.selectPath("*")));
-        boolean isFirst = true;
-        for (XmlObject ch : xo) {
-            if (ch instanceof CTHslColor) {
-                color = toColor((CTHslColor)ch);
-            } else if (ch instanceof CTPresetColor) {
-                color = toColor((CTPresetColor)ch);
-            } else if (ch instanceof CTSchemeColor) {
-                color = toColor((CTSchemeColor)ch, theme);
-            } else if (ch instanceof CTScRgbColor) {
-                color = toColor((CTScRgbColor)ch);
-            } else if (ch instanceof CTSRgbColor) {
-                color = toColor((CTSRgbColor)ch);
-            } else if (ch instanceof CTSystemColor) {
-                color = toColor((CTSystemColor)ch);
-            } else if (!(ch instanceof CTFontReference)) {
-                if (!isFirst) {
+        try {
+            XmlObject ch;
+            for (int idx=0; color == null && (ch = nextObject(obj, cur, idx)) != null; idx++) {
+                if (ch instanceof CTHslColor) {
+                    color = toColor((CTHslColor)ch);
+                } else if (ch instanceof CTPresetColor) {
+                    color = toColor((CTPresetColor)ch);
+                } else if (ch instanceof CTSchemeColor) {
+                    color = toColor((CTSchemeColor)ch, theme);
+                } else if (ch instanceof CTScRgbColor) {
+                    color = toColor((CTScRgbColor)ch);
+                } else if (ch instanceof CTSRgbColor) {
+                    color = toColor((CTSRgbColor)ch);
+                } else if (ch instanceof CTSystemColor) {
+                    color = toColor((CTSystemColor)ch);
+                } else if (!(ch instanceof CTFontReference) && idx > 0) {
                     throw new IllegalArgumentException("Unexpected color choice: " + ch.getClass());
                 }
             }
-            if (color != null) {
-                break;
-            }
-            isFirst = false;
+        } finally {
+            cur.dispose();
         }
         return color;
+    }
+
+    private static XmlObject nextObject(XmlObject obj, XmlCursor cur, int idx) {
+        switch (idx) {
+            case 0:
+                return obj;
+            case 1:
+                return cur.toFirstChild() ? cur.getObject() : null;
+            default:
+                return cur.toNextSibling() ? cur.getObject() : null;
+        }
     }
 
     /**
@@ -214,15 +225,16 @@ public class XSLFColor {
             alphaPct = (addAlpha) ? rgb.addNewAlpha() : null;
         } else {
             CTScRgbColor rgb = fill.addNewScrgbClr();
-            rgb.setR(DrawPaint.srgb2lin(rgbaf[0]));
-            rgb.setG(DrawPaint.srgb2lin(rgbaf[1]));
-            rgb.setB(DrawPaint.srgb2lin(rgbaf[2]));
+            double[] scRGB = DrawPaint.RGB2SCRGB(color);
+            rgb.setR((int)Math.rint(scRGB[0]*100_000d));
+            rgb.setG((int)Math.rint(scRGB[1]*100_000d));
+            rgb.setB((int)Math.rint(scRGB[2]*100_000d));
             alphaPct = (addAlpha) ? rgb.addNewAlpha() : null;
         }
 
         // alpha (%)
         if (alphaPct != null) {
-            alphaPct.setVal((int)(100000 * rgbaf[3]));
+            alphaPct.setVal((int)Math.rint(rgbaf[3]*100_000));
         }
     }
 
@@ -234,29 +246,26 @@ public class XSLFColor {
     }
 
     private static int getRawValue(CTSchemeColor phClr, XmlObject xmlObject, String elem) {
-        String query = "declare namespace a='http://schemas.openxmlformats.org/drawingml/2006/main' $this//a:" + elem;
-
-        XmlObject[] obj;
-
-        // first ask the context color and if not found, ask the actual color bean
-        if (phClr != null){
-            obj = phClr.selectPath(query);
-            if (obj.length == 1){
-                Node attr = obj[0].getDomNode().getAttributes().getNamedItem("val");
-                if(attr != null) {
-                    return Integer.parseInt(attr.getNodeValue());
+        for (XmlObject obj : new XmlObject[]{xmlObject,phClr}) {
+            if (obj == null) {
+                continue;
+            }
+            XmlCursor cur = obj.newCursor();
+            try {
+                if (!(
+                        cur.toChild(XSLFRelation.NS_DRAWINGML, elem) ||
+                        (cur.toFirstChild() && cur.toChild(XSLFRelation.NS_DRAWINGML, elem))
+                    )) {
+                    continue;
                 }
+                String str = cur.getAttributeText(VAL_ATTR);
+                if (str != null && !"".equals(str)) {
+                    return Integer.parseInt(str);
+                }
+            } finally {
+                cur.dispose();
             }
         }
-
-        obj = xmlObject.selectPath(query);
-        if (obj.length == 1){
-            Node attr = obj[0].getDomNode().getAttributes().getNamedItem("val");
-            if(attr != null) {
-                return Integer.parseInt(attr.getNodeValue());
-            }
-        }
-
         return -1;
     }
 

@@ -26,6 +26,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.poi.hssf.HSSFITestDataProvider;
 import org.apache.poi.hssf.record.CFRuleBase.ComparisonOperator;
@@ -85,8 +86,7 @@ public final class TestCFRuleRecord {
             byte[] serializedRecord = record.serialize();
 
             // Strip header
-            byte[] recordData = new byte[serializedRecord.length - 4];
-            System.arraycopy(serializedRecord, 4, recordData, 0, recordData.length);
+            byte[] recordData = Arrays.copyOfRange(serializedRecord, 4, serializedRecord.length);
 
             // Deserialize
             record = new CFRuleRecord(TestcaseRecordInputStream.create(CFRuleRecord.sid, recordData));
@@ -109,8 +109,7 @@ public final class TestCFRuleRecord {
             byte[] serializedRecord = record.serialize();
 
             // Strip header
-            byte[] recordData = new byte[serializedRecord.length - 4];
-            System.arraycopy(serializedRecord, 4, recordData, 0, recordData.length);
+            byte[] recordData = Arrays.copyOfRange(serializedRecord, 4, serializedRecord.length);
 
             // Deserialize
             record = new CFRule12Record(TestcaseRecordInputStream.create(CFRule12Record.sid, recordData));
@@ -140,8 +139,7 @@ public final class TestCFRuleRecord {
             byte[] serializedRecord = record.serialize();
 
             // Strip header
-            byte[] recordData = new byte[serializedRecord.length - 4];
-            System.arraycopy(serializedRecord, 4, recordData, 0, recordData.length);
+            byte[] recordData = Arrays.copyOfRange(serializedRecord, 4, serializedRecord.length);
 
             // Deserialize
             record = new CFRule12Record(TestcaseRecordInputStream.create(CFRule12Record.sid, recordData));
@@ -301,12 +299,12 @@ public final class TestCFRuleRecord {
         fontFormatting.setBold(false);
         assertFalse(fontFormatting.isBold());
 
-        fontFormatting.setEscapementType(FontFormatting.SS_SUB);
-        assertEquals(FontFormatting.SS_SUB, fontFormatting.getEscapementType());
-        fontFormatting.setEscapementType(FontFormatting.SS_SUPER);
-        assertEquals(FontFormatting.SS_SUPER, fontFormatting.getEscapementType());
-        fontFormatting.setEscapementType(FontFormatting.SS_NONE);
-        assertEquals(FontFormatting.SS_NONE, fontFormatting.getEscapementType());
+        fontFormatting.setEscapementType(org.apache.poi.ss.usermodel.Font.SS_SUB);
+        assertEquals(org.apache.poi.ss.usermodel.Font.SS_SUB, fontFormatting.getEscapementType());
+        fontFormatting.setEscapementType(org.apache.poi.ss.usermodel.Font.SS_SUPER);
+        assertEquals(org.apache.poi.ss.usermodel.Font.SS_SUPER, fontFormatting.getEscapementType());
+        fontFormatting.setEscapementType(org.apache.poi.ss.usermodel.Font.SS_NONE);
+        assertEquals(org.apache.poi.ss.usermodel.Font.SS_NONE, fontFormatting.getEscapementType());
 
         fontFormatting.setEscapementTypeModified(false);
         assertFalse(fontFormatting.isEscapementTypeModified());
@@ -364,8 +362,8 @@ public final class TestCFRuleRecord {
         fontFormatting.setStrikeout(true);
         assertTrue(fontFormatting.isStruckout());
 
-        fontFormatting.setUnderlineType(FontFormatting.U_DOUBLE_ACCOUNTING);
-        assertEquals(FontFormatting.U_DOUBLE_ACCOUNTING, fontFormatting.getUnderlineType());
+        fontFormatting.setUnderlineType(org.apache.poi.ss.usermodel.Font.U_DOUBLE_ACCOUNTING);
+        assertEquals(org.apache.poi.ss.usermodel.Font.U_DOUBLE_ACCOUNTING, fontFormatting.getUnderlineType());
 
         fontFormatting.setUnderlineTypeModified(false);
         assertFalse(fontFormatting.isUnderlineTypeModified());

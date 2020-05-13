@@ -60,6 +60,7 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationHelper;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Footer;
 import org.apache.poi.ss.usermodel.Header;
 import org.apache.poi.ss.usermodel.IgnoredErrorType;
@@ -91,50 +92,7 @@ import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.apache.xmlbeans.XmlOptions;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTAutoFilter;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTBreak;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCalcPr;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCell;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCellFormula;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCol;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCols;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTComment;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCommentList;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTDataValidation;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTDataValidations;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTDrawing;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTHeaderFooter;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTHyperlink;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTIgnoredError;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTIgnoredErrors;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTLegacyDrawing;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTMergeCell;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTMergeCells;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTOleObject;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTOleObjects;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTOutlinePr;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTPageBreak;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTPageMargins;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTPageSetUpPr;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTPane;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTPrintOptions;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTRow;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSelection;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheet;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetCalcPr;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetFormatPr;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetPr;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetProtection;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetView;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTablePart;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTableParts;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTWorksheet;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.STCalcMode;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellFormulaType;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.STPane;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.STPaneState;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.WorksheetDocument;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.*;
 
 /**
  * High level representation of a SpreadsheetML worksheet.
@@ -156,7 +114,12 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
     private static final double DEFAULT_MARGIN_BOTTOM = 0.75;
     private static final double DEFAULT_MARGIN_LEFT = 0.7;
     private static final double DEFAULT_MARGIN_RIGHT = 0.7;
-    public static final int TWIPS_PER_POINT = 20;
+
+    /**
+     * Kept for backwards-compatibility, use {@link Font#TWIPS_PER_POINT} instead.
+     * @deprecated POI 4.1.3
+     */
+    public static final int TWIPS_PER_POINT = Font.TWIPS_PER_POINT;
 
     //TODO make the two variable below private!
     protected CTSheet sheet;
@@ -763,9 +726,9 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
         XSSFRow prev = _rows.get(rownumI);
         if(prev != null){
             // the Cells in an existing row are invalidated on-purpose, in order to clean up correctly, we
-            // need to call the remove, so things like ArrayFormulas and CalculationChain updates are done 
-            // correctly. 
-            // We remove the cell this way as the internal cell-list is changed by the remove call and 
+            // need to call the remove, so things like ArrayFormulas and CalculationChain updates are done
+            // correctly.
+            // We remove the cell this way as the internal cell-list is changed by the remove call and
             // thus would cause ConcurrentModificationException otherwise
             while(prev.getFirstCellNum() != -1) {
                 prev.removeCell(prev.getCell(prev.getFirstCellNum()));
@@ -986,7 +949,7 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
      */
     @Override
     public short getDefaultRowHeight() {
-        return (short)(getDefaultRowHeightInPoints() * TWIPS_PER_POINT);
+        return (short)(getDefaultRowHeightInPoints() * Font.TWIPS_PER_POINT);
     }
 
 
@@ -1444,7 +1407,7 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
     }
 
     /**
-     * Sets the sheet password. 
+     * Sets the sheet password.
      *
      * @param password if null, the password will be removed
      * @param hashAlgo if null, the password will be set as XOR password (Excel 2010 and earlier)
@@ -1910,9 +1873,11 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
 
     private void setBreak(int id, CTPageBreak ctPgBreak, int lastIndex) {
         CTBreak brk = ctPgBreak.addNewBrk();
-        brk.setId(id + 1); // this is id of the element which is 1-based: <row r="1" ... >
+        // this is id of the element which is 1-based: <row r="1" ... >
+        brk.setId(id + 1L);
         brk.setMan(true);
-        brk.setMax(lastIndex); //end column of the break
+        // end column of the break
+        brk.setMax(lastIndex);
 
         int nPageBreaks = ctPgBreak.sizeOfBrkArray();
         ctPgBreak.setCount(nPageBreaks);
@@ -2092,8 +2057,13 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
     }
 
     /**
-     * Whether Excel will be asked to recalculate all formulas when the
-     *  workbook is opened.
+     * Whether Excel will be asked to recalculate all formulas of this sheet
+     * when the workbook is opened.
+     *
+     * Note: This just returns if the sheet has the recalculate flag set and
+     * will still return false even if recalculation is enabled on workbook-level.
+     *
+     * @return true if the Sheet has the recalculate-flag set.
      */
     @Override
     public boolean getForceFormulaRecalculation() {
@@ -2245,13 +2215,12 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
         }
 
         if (ciMin == targetColumnIx || ciMax == targetColumnIx) {
-            // The target column is at either end of the multi-column ColumnInfo
-            // ci
+            // The target column is at either end of the multi-column ColumnInfo ci
             // we'll just divide the info and create a new one
             if (ciMin == targetColumnIx) {
-                ci.setMin(targetColumnIx + 1);
+                ci.setMin(targetColumnIx + 1L);
             } else {
-                ci.setMax(targetColumnIx - 1);
+                ci.setMax(targetColumnIx - 1L);
             }
             CTCol nci = columnHelper.cloneCol(cols, ci);
             nci.setMin(targetColumnIx);
@@ -2264,14 +2233,14 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
             CTCol ciEnd = columnHelper.cloneCol(cols, ci);
             int lastcolumn = Math.toIntExact(ciMax);
 
-            ci.setMax(targetColumnIx - 1);
+            ci.setMax(targetColumnIx - 1L);
 
             ciMid.setMin(targetColumnIx);
             ciMid.setMax(targetColumnIx);
             unsetCollapsed(collapsed, ciMid);
             this.columnHelper.addCleanColIntoCols(cols, ciMid);
 
-            ciEnd.setMin(targetColumnIx + 1);
+            ciEnd.setMin(targetColumnIx + 1L);
             ciEnd.setMax(lastcolumn);
             this.columnHelper.addCleanColIntoCols(cols, ciEnd);
         }
@@ -2598,7 +2567,7 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
      */
     @Override
     public void setDefaultRowHeight(short height) {
-        setDefaultRowHeightInPoints((float)height / TWIPS_PER_POINT);
+        setDefaultRowHeightInPoints((float)height / Font.TWIPS_PER_POINT);
     }
 
     /**
@@ -3223,7 +3192,7 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
 
     private void shiftCommentsForColumns(XSSFVMLDrawing vml, int startColumnIndex, int endColumnIndex, final int n){
         // then do the actual moving and also adjust comments/rowHeight
-        // we need to sort it in a way so the shifting does not mess up the structures, 
+        // we need to sort it in a way so the shifting does not mess up the structures,
         // i.e. when shifting down, start from down and go up, when shifting up, vice-versa
         SortedMap<XSSFComment, Integer> commentsToShift = new TreeMap<>((o1, o2) -> {
             int column1 = o1.getColumn();
@@ -3261,7 +3230,7 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
             }
         }
         // adjust all the affected comment-structures now
-        // the Map is sorted and thus provides them in the order that we need here, 
+        // the Map is sorted and thus provides them in the order that we need here,
         // i.e. from down to up if shifting down, vice-versa otherwise
         for(Map.Entry<XSSFComment, Integer> entry : commentsToShift.entrySet()) {
             entry.getKey().setColumn(entry.getValue());
@@ -4058,7 +4027,7 @@ public class XSSFSheet extends POIXMLDocumentPart implements Sheet  {
         int currentCount = dataValidations.sizeOfDataValidationArray();
         CTDataValidation newval = dataValidations.addNewDataValidation();
         newval.set(xssfDataValidation.getCtDdataValidation());
-        dataValidations.setCount(currentCount + 1);
+        dataValidations.setCount(currentCount + 1L);
 
     }
 

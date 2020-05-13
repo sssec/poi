@@ -17,10 +17,16 @@
 
 package org.apache.poi.hpsf;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.poi.common.Duplicatable;
+import org.apache.poi.common.usermodel.GenericRecord;
+import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.LittleEndianInput;
 import org.apache.poi.util.LittleEndianOutput;
 
@@ -32,7 +38,7 @@ import org.apache.poi.util.LittleEndianOutput;
  *
  * The ClassID (or CLSID) is a UUID - see RFC 4122
  */
-public class ClassID implements Duplicatable {
+public class ClassID implements Duplicatable, GenericRecord {
     /** @deprecated use enum {@link ClassIDPredefined} */ @Deprecated
     public static final ClassID OLE10_PACKAGE  = ClassIDPredefined.OLE_V1_PACKAGE.getClassID();
     /** @deprecated use enum {@link ClassIDPredefined} */ @Deprecated
@@ -184,6 +190,7 @@ public class ClassID implements Duplicatable {
      * @param offset The offset within the {@code src} byte array
      * @return A byte array containing the class ID.
      */
+    @SuppressWarnings("PointlessArithmeticExpression")
     public byte[] read(final byte[] src, final int offset) {
         /* Read double word. */
         bytes[0] = src[3 + offset];
@@ -215,6 +222,7 @@ public class ClassID implements Duplicatable {
      * @exception ArrayStoreException if there is not enough room for the class
      * ID 16 bytes in the byte array after the {@code offset} position.
      */
+    @SuppressWarnings("PointlessArithmeticExpression")
     public void write(final byte[] dst, final int offset)
     throws ArrayStoreException {
         /* Check array size: */
@@ -310,16 +318,39 @@ public class ClassID implements Duplicatable {
      */
     @Override
     public String toString() {
-        String hex = Hex.encodeHexString(bytes, false);
-        return  "{" + hex.substring(0,8) +
-                "-" + hex.substring(8,12) +
-                "-" + hex.substring(12,16) +
-                "-" + hex.substring(16,20) +
-                "-" + hex.substring(20) + "}";
+        return "{" + toUUIDString() + "}";
     }
+
+    /**
+     * Returns a human-readable representation of the Class ID in UUID
+     * format {@code "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}.
+     *
+     * @return UUID String representation of the Class ID represented by this object.
+     */
+    public String toUUIDString() {
+        return toUUID().toString().toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * Converts the ClassID to an UUID
+     * @return the ClassID as UUID
+     *
+     * @since POI 4.1.3
+     */
+    public UUID toUUID() {
+        final long mostSigBits = ByteBuffer.wrap(bytes, 0, 8).getLong();
+        final long leastSigBits = ByteBuffer.wrap(bytes, 8, 8).getLong();
+        return new UUID(mostSigBits, leastSigBits);
+    }
+
 
     @Override
     public ClassID copy() {
         return new ClassID(this);
+    }
+
+    @Override
+    public Map<String, Supplier<?>> getGenericProperties() {
+        return GenericRecordUtil.getGenericProperties("uuid", this::toString);
     }
 }

@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.commons.collections4.iterators.IteratorIterable;
 import org.apache.commons.collections4.iterators.ReverseListIterator;
@@ -60,7 +61,7 @@ public class XDDFTextParagraph {
         final int count = paragraph.sizeOfBrArray() + paragraph.sizeOfFldArray() + paragraph.sizeOfRArray();
         this._runs = new ArrayList<>(count);
 
-        for (XmlObject xo : _p.selectChildren(QNameSet.ALL)) {
+        for (XmlObject xo : paragraph.selectChildren(QNameSet.ALL)) {
             if (xo instanceof CTTextLineBreak) {
                 _runs.add(new XDDFTextRun((CTTextLineBreak) xo, this));
             } else if (xo instanceof CTTextField) {
@@ -75,6 +76,11 @@ public class XDDFTextParagraph {
     }
 
     public void setText(String text) {
+        // keep the properties of current last run
+        XmlObject existing = null;
+        if (_runs.size() > 0) {
+            existing = _runs.get(_runs.size() - 1).getProperties().copy();
+        }
         // remove all runs
         for (int i = _p.sizeOfBrArray() - 1; i >= 0; i--) {
             _p.removeBr(i);
@@ -86,7 +92,10 @@ public class XDDFTextParagraph {
             _p.removeR(i);
         }
         _runs.clear();
-        appendRegularRun(text);
+        XDDFTextRun run = appendRegularRun(text);
+        if (existing != null) {
+            run.getProperties().set(existing);
+        }
     }
 
     public String getText() {
@@ -119,7 +128,7 @@ public class XDDFTextParagraph {
         // by default, line break has the font properties of the last text run
         for (XDDFTextRun tr : new IteratorIterable<>(new ReverseListIterator<>(_runs))) {
             CTTextCharacterProperties prevProps = tr.getProperties();
-            // let's find one that is not undefined
+            // let's find one which is not undefined
             if (prevProps != null) {
                 br.setRPr((CTTextCharacterProperties) prevProps.copy());
                 break;
@@ -163,6 +172,32 @@ public class XDDFTextParagraph {
     }
 
     /**
+     * Returns the paragraph indentation level.
+     *
+     * @return indentation level of the paragraph.
+     */
+    public int getIndentationLevel() {
+        if (_p.isSetPPr()) {
+            return getProperties().getLevel();
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * Specifies the paragraph indentation level, between 1 and 9.
+     *
+     * @param level
+     *            new indentation level for the paragraph.
+     *            Use <code>null</code> to unset the indentation level.
+     */
+    public void setIndentationLevel(Integer level) {
+        if (_p.isSetPPr()) {
+            getProperties().setLevel(level);
+        }
+    }
+
+    /**
      * Returns the alignment that is applied to the paragraph.
      *
      * If this attribute is omitted, then a value of left is implied.
@@ -170,8 +205,10 @@ public class XDDFTextParagraph {
      * @return alignment that is applied to the paragraph
      */
     public TextAlignment getTextAlignment() {
-        return findDefinedParagraphProperty(props -> props.isSetAlgn(), props -> props.getAlgn())
-            .map(align -> TextAlignment.valueOf(align)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetAlgn,
+                CTTextParagraphProperties::getAlgn)
+            .map(TextAlignment::valueOf).orElse(null);
     }
 
     /**
@@ -197,8 +234,10 @@ public class XDDFTextParagraph {
      * @return alignment that is applied to the paragraph
      */
     public FontAlignment getFontAlignment() {
-        return findDefinedParagraphProperty(props -> props.isSetFontAlgn(), props -> props.getFontAlgn())
-            .map(align -> FontAlignment.valueOf(align)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetFontAlgn,
+                CTTextParagraphProperties::getFontAlgn)
+            .map(FontAlignment::valueOf).orElse(null);
     }
 
     /**
@@ -222,8 +261,10 @@ public class XDDFTextParagraph {
      *         the paragraph.
      */
     public Double getIndentation() {
-        return findDefinedParagraphProperty(props -> props.isSetIndent(), props -> props.getIndent())
-            .map(emu -> Units.toPoints(emu)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetIndent,
+                CTTextParagraphProperties::getIndent)
+            .map(Units::toPoints).orElse(null);
     }
 
     /**
@@ -251,8 +292,10 @@ public class XDDFTextParagraph {
      * @return the left margin, in points, of the paragraph.
      */
     public Double getMarginLeft() {
-        return findDefinedParagraphProperty(props -> props.isSetMarL(), props -> props.getMarL())
-            .map(emu -> Units.toPoints(emu)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetMarL,
+                CTTextParagraphProperties::getMarL)
+            .map(Units::toPoints).orElse(null);
     }
 
     /**
@@ -282,8 +325,10 @@ public class XDDFTextParagraph {
      * @return the right margin, in points, of the paragraph.
      */
     public Double getMarginRight() {
-        return findDefinedParagraphProperty(props -> props.isSetMarR(), props -> props.getMarR())
-            .map(emu -> Units.toPoints(emu)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetMarR,
+                CTTextParagraphProperties::getMarR)
+            .map(Units::toPoints).orElse(null);
     }
 
     /**
@@ -314,8 +359,10 @@ public class XDDFTextParagraph {
      *         points.
      */
     public Double getDefaultTabSize() {
-        return findDefinedParagraphProperty(props -> props.isSetDefTabSz(), props -> props.getDefTabSz())
-            .map(emu -> Units.toPoints(emu)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetDefTabSz,
+                CTTextParagraphProperties::getDefTabSz)
+            .map(Units::toPoints).orElse(null);
     }
 
     /**
@@ -344,8 +391,10 @@ public class XDDFTextParagraph {
      * @return the vertical line spacing.
      */
     public XDDFSpacing getLineSpacing() {
-        return findDefinedParagraphProperty(props -> props.isSetLnSpc(), props -> props.getLnSpc())
-            .map(spacing -> extractSpacing(spacing)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetLnSpc,
+                CTTextParagraphProperties::getLnSpc)
+            .map(this::extractSpacing).orElse(null);
 
     }
 
@@ -395,8 +444,10 @@ public class XDDFTextParagraph {
      * @return the vertical white space before the paragraph.
      */
     public XDDFSpacing getSpaceBefore() {
-        return findDefinedParagraphProperty(props -> props.isSetSpcBef(), props -> props.getSpcBef())
-            .map(spacing -> extractSpacing(spacing)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetSpcBef,
+                CTTextParagraphProperties::getSpcBef)
+            .map(this::extractSpacing).orElse(null);
     }
 
     /**
@@ -443,8 +494,10 @@ public class XDDFTextParagraph {
      * @return the vertical white space after the paragraph.
      */
     public XDDFSpacing getSpaceAfter() {
-        return findDefinedParagraphProperty(props -> props.isSetSpcAft(), props -> props.getSpcAft())
-            .map(spacing -> extractSpacing(spacing)).orElse(null);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetSpcAft,
+                CTTextParagraphProperties::getSpcAft)
+            .map(this::extractSpacing).orElse(null);
     }
 
     /**
@@ -591,7 +644,10 @@ public class XDDFTextParagraph {
     }
 
     public boolean hasEastAsianLineBreak() {
-        return findDefinedParagraphProperty(props -> props.isSetEaLnBrk(), props -> props.getEaLnBrk()).orElse(false);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetEaLnBrk,
+                CTTextParagraphProperties::getEaLnBrk)
+            .orElse(false);
     }
 
     public void setEastAsianLineBreak(Boolean value) {
@@ -601,7 +657,9 @@ public class XDDFTextParagraph {
     }
 
     public boolean hasLatinLineBreak() {
-        return findDefinedParagraphProperty(props -> props.isSetLatinLnBrk(), props -> props.getLatinLnBrk())
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetLatinLnBrk,
+                CTTextParagraphProperties::getLatinLnBrk)
             .orElse(false);
     }
 
@@ -612,7 +670,9 @@ public class XDDFTextParagraph {
     }
 
     public boolean hasHangingPunctuation() {
-        return findDefinedParagraphProperty(props -> props.isSetHangingPunct(), props -> props.getHangingPunct())
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetHangingPunct,
+                CTTextParagraphProperties::getHangingPunct)
             .orElse(false);
     }
 
@@ -623,7 +683,10 @@ public class XDDFTextParagraph {
     }
 
     public boolean isRightToLeft() {
-        return findDefinedParagraphProperty(props -> props.isSetRtl(), props -> props.getRtl()).orElse(false);
+        return findDefinedParagraphProperty(
+                CTTextParagraphProperties::isSetRtl,
+                CTTextParagraphProperties::getRtl)
+            .orElse(false);
     }
 
     public void setRightToLeft(Boolean value) {
@@ -752,7 +815,7 @@ public class XDDFTextParagraph {
         return getProperties();
     }
 
-    protected <R> Optional<R> findDefinedParagraphProperty(Function<CTTextParagraphProperties, Boolean> isSet,
+    protected <R> Optional<R> findDefinedParagraphProperty(Predicate<CTTextParagraphProperties> isSet,
         Function<CTTextParagraphProperties, R> getter) {
         if (_p.isSetPPr()) {
             int level = _p.getPPr().isSetLvl() ? 1 + _p.getPPr().getLvl() : 0;
@@ -762,17 +825,17 @@ public class XDDFTextParagraph {
         }
     }
 
-    private <R> Optional<R> findDefinedParagraphProperty(Function<CTTextParagraphProperties, Boolean> isSet,
+    private <R> Optional<R> findDefinedParagraphProperty(Predicate<CTTextParagraphProperties> isSet,
         Function<CTTextParagraphProperties, R> getter, int level) {
         final CTTextParagraphProperties props = _p.getPPr();
-        if (props != null && isSet.apply(props)) {
+        if (props != null && isSet.test(props)) {
             return Optional.ofNullable(getter.apply(props));
         } else {
             return _parent.findDefinedParagraphProperty(isSet, getter, level);
         }
     }
 
-    protected <R> Optional<R> findDefinedRunProperty(Function<CTTextCharacterProperties, Boolean> isSet,
+    protected <R> Optional<R> findDefinedRunProperty(Predicate<CTTextCharacterProperties> isSet,
         Function<CTTextCharacterProperties, R> getter) {
         if (_p.isSetPPr()) {
             int level = _p.getPPr().isSetLvl() ? 1 + _p.getPPr().getLvl() : 0;
@@ -782,10 +845,10 @@ public class XDDFTextParagraph {
         }
     }
 
-    private <R> Optional<R> findDefinedRunProperty(Function<CTTextCharacterProperties, Boolean> isSet,
+    private <R> Optional<R> findDefinedRunProperty(Predicate<CTTextCharacterProperties> isSet,
         Function<CTTextCharacterProperties, R> getter, int level) {
         final CTTextCharacterProperties props = _p.getPPr().isSetDefRPr() ? _p.getPPr().getDefRPr() : null;
-        if (props != null && isSet.apply(props)) {
+        if (props != null && isSet.test(props)) {
             return Optional.ofNullable(getter.apply(props));
         } else {
             return _parent.findDefinedRunProperty(isSet, getter, level);

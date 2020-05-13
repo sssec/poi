@@ -2,7 +2,7 @@
 // Apache POI uses on the public Jenkins instance at https://builds.apache.org/view/P/view/POI/
 //
 // See https://github.com/jenkinsci/job-dsl-plugin/wiki for information about the DSL, you can
-// use http://job-dsl.herokuapp.com/ to validate the code before checkin
+// use https://job-dsl.herokuapp.com/ to validate the code before checkin
 //
 
 def triggerSundays = '''
@@ -10,11 +10,16 @@ def triggerSundays = '''
 H H * * 0
 '''
 
-def xercesUrl = 'http://repo1.maven.org/maven2/xerces/xercesImpl/2.6.1/xercesImpl-2.6.1.jar'
+def xercesUrl = 'https://repo1.maven.org/maven2/xerces/xercesImpl/2.6.1/xercesImpl-2.6.1.jar'
 def xercesLib = './xercesImpl-2.6.1.jar'
 
 def poijobs = [
         [ name: 'POI-DSL-1.8', trigger: 'H */12 * * *'
+        ],
+        [ name: 'POI-DSL-OpenJDK', jdk: 'OpenJDK 1.8', trigger: 'H */12 * * *',
+          // only a limited set of nodes still have OpenJDK 8 (on Ubuntu) installed
+          slaves: 'H0||H2||H6||H9||H10||H12||H14||H22||H23||H25||H27||H34||H36||H37||H39||H40||H42||H44||H48||H50',
+          skipcigame: true
         ],
         [ name: 'POI-DSL-1.10', jdk: '1.10', trigger: triggerSundays, skipcigame: true
         ],
@@ -30,10 +35,12 @@ def poijobs = [
         ],
         [ name: 'POI-DSL-1.14', jdk: '1.14', trigger: triggerSundays, skipcigame: true
         ],
+        [ name: 'POI-DSL-1.15', jdk: '1.15', trigger: triggerSundays, skipcigame: true
+        ],
         [ name: 'POI-DSL-IBM-JDK', jdk: 'IBMJDK', trigger: triggerSundays, skipcigame: true
         ],
         [ name: 'POI-DSL-old-Xerces', trigger: triggerSundays,
-          shell: "test -f ${xercesLib} || wget -O ${xercesLib} ${xercesUrl}\n",
+          shell: "test -s ${xercesLib} || wget -O ${xercesLib} ${xercesUrl}\n",
           // the property triggers using Xerces as XML Parser and previously showed some exception that can occur
           properties: ["-Dadditionaljar=${xercesLib}"]
         ],
@@ -49,7 +56,8 @@ def poijobs = [
         ],
         [ name: 'POI-DSL-no-scratchpad', trigger: triggerSundays, noScratchpad: true
         ],
-        [ name: 'POI-DSL-SonarQube', trigger: 'H 9 * * *', maven: true, sonar: true, skipcigame: true
+        [ name: 'POI-DSL-SonarQube', trigger: 'H 7 * * *', maven: true, sonar: true, skipcigame: true,
+          email: 'kiwiwings@apache.org'
         ],
         [ name: 'POI-DSL-SonarQube-Gradle', trigger: 'H 9 * * *', gradle: true, sonar: true, skipcigame: true,
                 disabled: true // this one does run, but does not actually send data to Sonarqube for some reason, we need to investigate some more
@@ -106,6 +114,8 @@ def jdkMapping = [
         '1.12': 'JDK 12 (latest)',
         '1.13': 'JDK 13 (latest)',
         '1.14': 'JDK 14 (latest)',
+        '1.15': 'JDK 15 (latest)',
+        'OpenJDK 1.8': 'OpenJDK 1.8.0_242',
         'IBMJDK': 'IBM 1.8 64-bit (on Ubuntu only)',
 ]
 
@@ -255,7 +265,7 @@ poijobs.each { poijob ->
             } else {
                 svn(svnBase) { svnNode ->
                     svnNode / browser(class: 'hudson.scm.browsers.ViewSVN') /
-                            url << 'http://svn.apache.org/viewcvs.cgi/?root=Apache-SVN'
+                            url << 'https://svn.apache.org/viewcvs.cgi/?root=Apache-SVN'
                 }
             }
         }
@@ -489,7 +499,7 @@ xmlbeansjobs.each { xjob ->
                 // when using JDK 9/10 for running Ant, we need to provide more modules for the forbidden-api-checks task
                 // on JDK 11 and newer there is no such module any more, so do not add it here
                 env('ANT_OPTS', '--add-modules=java.xml.bind --add-opens=java.xml/com.sun.org.apache.xerces.internal.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED')
-            } else if (jdkKey == '1.11' || jdkKey == '1.12' || jdkKey == '1.13' || jdkKey == '1.14') {
+            } else if (jdkKey == '1.11' || jdkKey == '1.12' || jdkKey == '1.13' || jdkKey == '1.14' || jdkKey == '1.15') {
                 env('ANT_OPTS', '--add-opens=java.xml/com.sun.org.apache.xerces.internal.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED')
             }
             // will be needed for forbidden-apis-check: env('ANT_HOME', xjob.windows ? 'f:\\jenkins\\tools\\ant\\latest' : '/usr/share/ant')
@@ -506,7 +516,7 @@ xmlbeansjobs.each { xjob ->
         scm {
             svn(xmlbeansSvnBase) { svnNode ->
                 svnNode / browser(class: 'hudson.scm.browsers.ViewSVN') /
-                        url << 'http://svn.apache.org/viewcvs.cgi/?root=Apache-SVN'
+                        url << 'https://svn.apache.org/viewcvs.cgi/?root=Apache-SVN'
             }
         }
         checkoutRetryCount(3)
@@ -578,11 +588,13 @@ Unfortunately we often see builds break because of changes/new machines...''')
     axes {
         jdk(
                 'JDK 1.8 (latest)',
+                'OpenJDK 1.8.0_242',
                 'IBM 1.8 64-bit (on Ubuntu only)',
                 'JDK 11 (latest)',
                 'JDK 12 (latest)',
                 'JDK 13 (latest)',
-                'JDK 14 (latest)'
+                'JDK 14 (latest)',
+                'JDK 15 (latest)'
         )
         elasticAxis {
             name('Nodes')

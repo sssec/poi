@@ -243,8 +243,6 @@ public class HemfPlusMisc {
 
         @Override
         public void draw(HemfGraphics ctx) {
-            HemfDrawProperties prop = ctx.getProperties();
-
             AffineTransform tx = ctx.getInitTransform();
             tx.concatenate(getMatrixData());
             ctx.setTransform(tx);
@@ -318,6 +316,7 @@ public class HemfPlusMisc {
     }
 
     /** The EmfPlusSetClipRect record combines the current clipping region with a rectangle. */
+    @SuppressWarnings("unused")
     public static class EmfPlusSetClipRect implements HemfPlusRecord {
         private static final BitField COMBINE_MODE = BitFieldFactory.getInstance(0x0F00);
 
@@ -462,7 +461,7 @@ public class HemfPlusMisc {
 
             origin.setLocation(x,y);
 
-            return LittleEndianConsts.INT_SIZE*2;
+            return LittleEndianConsts.INT_SIZE*2L;
         }
 
         @Override

@@ -59,7 +59,6 @@ import org.apache.poi.hssf.record.CellValueRecordInterface;
 import org.apache.poi.hssf.record.CommonObjectDataSubRecord;
 import org.apache.poi.hssf.record.EmbeddedObjectRefSubRecord;
 import org.apache.poi.hssf.record.NameRecord;
-import org.apache.poi.hssf.record.Record;
 import org.apache.poi.hssf.record.TabIdRecord;
 import org.apache.poi.hssf.record.UnknownRecord;
 import org.apache.poi.hssf.record.aggregates.FormulaRecordAggregate;
@@ -2693,7 +2692,7 @@ public final class TestBugs extends BaseTestBugzillaIssues {
         try (Workbook wb = openSampleWorkbook("46515.xls")) {
 
             // Get structure from webservice
-            String urlString = "http://poi.apache.org/components/spreadsheet/images/calendar.jpg";
+            String urlString = "https://poi.apache.org/components/spreadsheet/images/calendar.jpg";
             URL structURL = new URL(urlString);
             BufferedImage bimage;
             try {
@@ -2888,10 +2887,18 @@ public final class TestBugs extends BaseTestBugzillaIssues {
     }
 
     @Test
+    public void test55505() throws IOException {
+        simpleTest("bug55505.xls");
+    }
+
+    @Test
     public void test63940() throws IOException {
         simpleTest("SUBSTITUTE.xls");
     }
-
+    @Test
+    public void test64261() throws IOException {
+        simpleTest("64261.xls");
+    }
     // a simple test which rewrites the file once and evaluates its formulas
     private void simpleTest(String fileName) throws IOException {
         simpleTest(fileName, null);
@@ -2907,6 +2914,11 @@ public final class TestBugs extends BaseTestBugzillaIssues {
             HSSFRow r = s.createRow(10_000);
             HSSFCell c = r.createCell(0);
             c.setCellValue(10);
+
+            HSSFSheet tmpSheet = wb1.createSheet("POITESTSHEET");
+            tmpSheet.createRow(10).createCell(10).setCellValue("Test");
+            wb1.removeSheetAt(wb1.getSheetIndex(tmpSheet));
+
             simpleTestHelper(wb1, fileName);
 
             try (HSSFWorkbook wb2 = writeOutAndReadBack(wb1)) {
@@ -2932,4 +2944,6 @@ public final class TestBugs extends BaseTestBugzillaIssues {
         HSSFFormulaEvaluator.setupEnvironment( files.toArray(new String[0]), evals.toArray(new HSSFFormulaEvaluator[0]) );
         evals.get(0).evaluateAll();
     }
+
+
 }

@@ -531,6 +531,12 @@ public class HSSFCell extends CellBase {
      */
     @Override
     protected void setCellFormulaImpl(String formula) {
+        // formula cells always have a value. If the cell is blank (either initially or after removing an
+        // array formula), set value to 0
+        if (getValueType() == CellType.BLANK) {
+            setCellValue(0);
+        }
+
         assert formula != null;
 
         int row=_record.getRow();
@@ -566,7 +572,7 @@ public class HSSFCell extends CellBase {
             case ERROR:
                 return CellValue.getError(getErrorCellValue());
             default:
-                throw new IllegalStateException();
+                throw new IllegalStateException("Unexpected cell-type " + valueType);
         }
     }
 
@@ -585,7 +591,7 @@ public class HSSFCell extends CellBase {
                 setCellErrorValue(FormulaError.forInt(value.getErrorValue()));
                 break;
             default:
-                throw new IllegalStateException();
+                throw new IllegalStateException("Unexpected cell-type " + value.getCellType() + " for cell-value: " + value);
         }
     }
 
@@ -647,7 +653,7 @@ public class HSSFCell extends CellBase {
         return new IllegalStateException(msg);
     }
     private static void checkFormulaCachedValueType(CellType expectedTypeCode, FormulaRecord fr) {
-        CellType cachedValueType = CellType.forInt(fr.getCachedResultType());
+        CellType cachedValueType = fr.getCachedResultTypeEnum();
         if (cachedValueType != expectedTypeCode) {
             throw typeMismatch(expectedTypeCode, cachedValueType, true);
         }
@@ -833,7 +839,7 @@ public class HSSFCell extends CellBase {
             case STRING:
                 int sstIndex = ((LabelSSTRecord)_record).getSSTIndex();
                 String text = _book.getWorkbook().getSSTString(sstIndex).getString();
-                return Boolean.valueOf(text).booleanValue();
+                return Boolean.parseBoolean(text);
             case NUMERIC:
                 return ((NumberRecord)_record).getValue() != 0;
 
@@ -873,7 +879,7 @@ public class HSSFCell extends CellBase {
         }
         FormulaRecordAggregate fra = ((FormulaRecordAggregate)_record);
         FormulaRecord fr = fra.getFormulaRecord();
-        switch (CellType.forInt(fr.getCachedResultType())) {
+        switch (fr.getCachedResultTypeEnum()) {
             case BOOLEAN:
                 return fr.getCachedBooleanValue() ? "TRUE" : "FALSE";
             case STRING:
@@ -1022,7 +1028,7 @@ public class HSSFCell extends CellBase {
      * Errors are displayed as #ERR&lt;errIdx&gt;
      */
     public String toString() {
-        switch (getCellTypeEnum()) {
+        switch (getCellType()) {
             case BLANK:
                 return "";
             case BOOLEAN:
@@ -1119,7 +1125,7 @@ public class HSSFCell extends CellBase {
         link.setFirstColumn(_record.getColumn());
         link.setLastColumn(_record.getColumn());
 
-        switch(link.getTypeEnum()){
+        switch(link.getType()){
             case EMAIL:
             case URL:
                 link.setLabel("url");
@@ -1168,8 +1174,8 @@ public class HSSFCell extends CellBase {
         if (_cellType != CellType.FORMULA) {
             throw new IllegalStateException("Only formula cells have cached results");
         }
-        int code = ((FormulaRecordAggregate)_record).getFormulaRecord().getCachedResultType();
-        return CellType.forInt(code);
+
+        return ((FormulaRecordAggregate)_record).getFormulaRecord().getCachedResultTypeEnum();
     }
 
     /**

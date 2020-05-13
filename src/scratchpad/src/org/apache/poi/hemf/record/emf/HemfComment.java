@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 import org.apache.poi.common.usermodel.GenericRecord;
@@ -96,10 +97,10 @@ public class HemfComment {
          *
          * @param ctx the graphics context to modify
          */
-        default void draw(HemfGraphics ctx) {};
+        default void draw(HemfGraphics ctx) {}
 
         @Override
-        default Enum getGenericRecordType() {
+        default HemfCommentRecordType getGenericRecordType() {
             return getCommentRecordType();
         }
     }
@@ -114,7 +115,7 @@ public class HemfComment {
 
         @Override
         public long init(LittleEndianInputStream leis, long recordSize, long recordId) throws IOException {
-            int startIdx = leis.getReadIndex();
+            long startIdx = leis.getReadIndex();
             data = new EmfCommentDataIterator(leis, (int)recordSize, true).next();
             return leis.getReadIndex()-startIdx;
         }
@@ -136,6 +137,14 @@ public class HemfComment {
         @Override
         public Map<String, Supplier<?>> getGenericProperties() {
             return GenericRecordUtil.getGenericProperties("data", this::getCommentData);
+        }
+
+        static void validateCommentType(final LittleEndianInputStream leis, HemfCommentRecordType commentType) {
+            int commentIdentifier = (int)leis.readUInt();
+            if (commentIdentifier == HemfCommentRecordType.emfPublic.id) {
+                commentIdentifier = (int)leis.readUInt();
+            }
+            assert(commentIdentifier == commentType.id);
         }
     }
 
@@ -164,6 +173,9 @@ public class HemfComment {
 
         @Override
         public EmfCommentData next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
             EmfCommentData toReturn = currentRecord;
             final boolean isEOF = (limit == -1 || leis.getReadIndex() >= startIdx+limit);
             // (currentRecord instanceof HemfPlusMisc.EmfEof)
@@ -172,20 +184,19 @@ public class HemfComment {
         }
 
         private EmfCommentData _next() {
-            long type, recordSize;
+            long recordSize;
             if (currentRecord == null && emfParent) {
-                type = HemfRecordType.comment.id;
                 recordSize = limit;
             } else {
                 // A 32-bit unsigned integer from the RecordType enumeration that identifies this record
                 // as a comment record. This value MUST be 0x00000046.
                 try {
-                    type = leis.readUInt();
+                    long type = leis.readUInt();
+                    assert(type == HemfRecordType.comment.id);
                 } catch (RuntimeException e) {
                     // EOF
                     return null;
                 }
-                assert(type == HemfRecordType.comment.id);
                 // A 32-bit unsigned integer that specifies the size in bytes of this record in the
                 // metafile. This value MUST be a multiple of 4 bytes.
                 recordSize = leis.readUInt();
@@ -288,9 +299,8 @@ public class HemfComment {
         @Override
         public long init(final LittleEndianInputStream leis, final long dataSize)
         throws IOException {
-            long startIdx = leis.getReadIndex();
-            int commentIdentifier = leis.readInt();
-            assert (commentIdentifier == HemfCommentRecordType.emfPlus.id);
+            final long startIdx = leis.getReadIndex();
+            EmfComment.validateCommentType(leis, HemfCommentRecordType.emfPlus);
             new HemfPlusRecordIterator(leis, (int)dataSize-LittleEndianConsts.INT_SIZE).forEachRemaining(records::add);
             return leis.getReadIndex()-startIdx;
         }
@@ -328,13 +338,9 @@ public class HemfComment {
         }
 
         @Override
-        public long init(final LittleEndianInputStream leis, final long dataSize)
-        throws IOException {
-            final int startIdx = leis.getReadIndex();
-            final int commentIdentifier = (int)leis.readUInt();
-            assert(commentIdentifier == HemfCommentRecordType.emfPublic.id);
-            final int publicCommentIdentifier = (int)leis.readUInt();
-            assert(publicCommentIdentifier == HemfCommentRecordType.emfBeginGroup.id);
+        public long init(final LittleEndianInputStream leis, final long dataSize) throws IOException {
+            final long startIdx = leis.getReadIndex();
+            EmfComment.validateCommentType(leis, HemfCommentRecordType.emfBeginGroup);
             HemfDraw.readRectL(leis, bounds);
 
             // The number of Unicode characters in the optional description string that follows.
@@ -346,6 +352,7 @@ public class HemfComment {
 
             return leis.getReadIndex()-startIdx;
         }
+
 
         public Rectangle2D getBounds() {
             return bounds;
@@ -373,11 +380,8 @@ public class HemfComment {
         @Override
         public long init(final LittleEndianInputStream leis, final long dataSize)
         throws IOException {
-            final int startIdx = leis.getReadIndex();
-            final int commentIdentifier = (int)leis.readUInt();
-            assert(commentIdentifier == HemfCommentRecordType.emfPublic.id);
-            final int publicCommentIdentifier = (int)leis.readUInt();
-            assert(publicCommentIdentifier == HemfCommentRecordType.emfEndGroup.id);
+            final long startIdx = leis.getReadIndex();
+            EmfComment.validateCommentType(leis, HemfCommentRecordType.emfEndGroup);
             return leis.getReadIndex()-startIdx;
         }
 
@@ -397,13 +401,9 @@ public class HemfComment {
         }
 
         @Override
-        public long init(final LittleEndianInputStream leis, final long dataSize)
-                throws IOException {
+        public long init(final LittleEndianInputStream leis, final long dataSize) throws IOException {
             final int startIdx = leis.getReadIndex();
-            final int commentIdentifier = (int)leis.readUInt();
-            assert(commentIdentifier == HemfCommentRecordType.emfPublic.id);
-            final int publicCommentIdentifier = (int)leis.readUInt();
-            assert(publicCommentIdentifier == HemfCommentRecordType.emfMultiFormats.id);
+            EmfComment.validateCommentType(leis, HemfCommentRecordType.emfMultiFormats);
             HemfDraw.readRectL(leis, bounds);
 
             // A 32-bit unsigned integer that specifies the number of graphics formats contained in this record.
@@ -429,7 +429,7 @@ public class HemfComment {
                 }
             }
 
-            return leis.getReadIndex()-startIdx;
+            return leis.getReadIndex()-(long)startIdx;
         }
 
         public List<EmfCommentDataFormat> getFormats() {
@@ -487,6 +487,7 @@ public class HemfComment {
         private int offData;
         private byte[] rawData;
 
+        @SuppressWarnings("unused")
         public long init(final LittleEndianInputStream leis, final long dataSize, long startIdx) throws IOException {
             // A 32-bit unsigned integer that specifies the format of the image data.
             signature = EmfFormatSignature.getById(leis.readInt());
@@ -509,7 +510,7 @@ public class HemfComment {
                 throw new RecordFormatException("offset for emrformat must be > 0");
             }
 
-            return 4*LittleEndianConsts.INT_SIZE;
+            return 4L*LittleEndianConsts.INT_SIZE;
         }
 
         public byte[] getRawData() {
@@ -539,13 +540,11 @@ public class HemfComment {
             return HemfCommentRecordType.emfWMF;
         }
 
+        @SuppressWarnings("unused")
         @Override
         public long init(final LittleEndianInputStream leis, final long dataSize) throws IOException {
-            final int startIdx = leis.getReadIndex();
-            final int commentIdentifier = (int)leis.readUInt();
-            assert(commentIdentifier == HemfCommentRecordType.emfPublic.id);
-            final int publicCommentIdentifier = (int)leis.readUInt();
-            assert(publicCommentIdentifier == HemfCommentRecordType.emfWMF.id);
+            final long startIdx = leis.getReadIndex();
+            EmfComment.validateCommentType(leis, HemfCommentRecordType.emfWMF);
 
             // A 16-bit unsigned integer that specifies the WMF metafile version in terms
             //of support for device-independent bitmaps (DIBs)

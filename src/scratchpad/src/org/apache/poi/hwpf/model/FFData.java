@@ -16,8 +16,14 @@
 ==================================================================== */
 package org.apache.poi.hwpf.model;
 
+import static org.apache.poi.hwpf.model.types.FFDataBaseAbstractType.ITYPE_CHCK;
+import static org.apache.poi.hwpf.model.types.FFDataBaseAbstractType.ITYPE_DROP;
+import static org.apache.poi.hwpf.model.types.FFDataBaseAbstractType.ITYPE_TEXT;
+
+import org.apache.poi.hwpf.model.types.FFDataBaseAbstractType;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 
 /**
  * The FFData structure specifies form field data for a text box, check box, or
@@ -29,7 +35,7 @@ import org.apache.poi.util.LittleEndian;
  * <p>
  * This class is internal. It content or properties may change without notice
  * due to changes in our knowledge of internal Microsoft Word binary structures.
- * 
+ *
  * @author Sergey Vladimirov; according to [MS-DOC] -- v20121003 Word (.doc)
  *         Binary File Format; Copyright (c) 2012 Microsoft Corporation;
  *         Release: October 8, 2012
@@ -94,12 +100,12 @@ public class FFData
         int offset = startOffset;
 
         this._base = new FFDataBase( std, offset );
-        offset += FFDataBase.getSize();
+        offset += FFDataBaseAbstractType.getSize();
 
         this._xstzName = new Xstz( std, offset );
         offset += this._xstzName.getSize();
 
-        if ( _base.getIType() == FFDataBase.ITYPE_TEXT )
+        if ( _base.getIType() == ITYPE_TEXT )
         {
             _xstzTextDef = new Xstz( std, offset );
             offset += this._xstzTextDef.getSize();
@@ -109,12 +115,11 @@ public class FFData
             this._xstzTextDef = null;
         }
 
-        if ( _base.getIType() == FFDataBase.ITYPE_CHCK
-                || _base.getIType() == FFDataBase.ITYPE_DROP )
+        if ( _base.getIType() == ITYPE_CHCK
+                || _base.getIType() == ITYPE_DROP )
         {
-            this._wDef = Integer
-                    .valueOf( LittleEndian.getUShort( std, offset ) );
-            offset += LittleEndian.SHORT_SIZE;
+            this._wDef = LittleEndian.getUShort(std, offset);
+            offset += LittleEndianConsts.SHORT_SIZE;
         }
         else
         {
@@ -136,10 +141,8 @@ public class FFData
         _xstzExitMcr = new Xstz( std, offset );
         offset += this._xstzExitMcr.getSize();
 
-        if ( _base.getIType() == FFDataBase.ITYPE_DROP )
-        {
+        if ( _base.getIType() == ITYPE_DROP ) {
             _hsttbDropList = new Sttb( std, offset );
-            offset += _hsttbDropList.getSize();
         }
     }
 
@@ -148,7 +151,7 @@ public class FFData
      */
     public int getDefaultDropDownItemIndex()
     {
-        return _wDef.intValue();
+        return _wDef;
     }
 
     public String[] getDropList()
@@ -158,19 +161,19 @@ public class FFData
 
     public int getSize()
     {
-        int size = FFDataBase.getSize();
+        int size = FFDataBaseAbstractType.getSize();
 
         size += _xstzName.getSize();
 
-        if ( _base.getIType() == FFDataBase.ITYPE_TEXT )
+        if ( _base.getIType() == ITYPE_TEXT )
         {
             size += _xstzTextDef.getSize();
         }
 
-        if ( _base.getIType() == FFDataBase.ITYPE_CHCK
-                || _base.getIType() == FFDataBase.ITYPE_DROP )
+        if ( _base.getIType() == ITYPE_CHCK
+                || _base.getIType() == ITYPE_DROP )
         {
-            size += LittleEndian.SHORT_SIZE;
+            size += LittleEndianConsts.SHORT_SIZE;
         }
 
         size += _xstzTextFormat.getSize();
@@ -179,7 +182,7 @@ public class FFData
         size += _xstzEntryMcr.getSize();
         size += _xstzExitMcr.getSize();
 
-        if ( _base.getIType() == FFDataBase.ITYPE_DROP )
+        if ( _base.getIType() == ITYPE_DROP )
         {
             size += _hsttbDropList.getSize();
         }
@@ -198,20 +201,20 @@ public class FFData
         int offset = 0;
 
         _base.serialize( buffer, offset );
-        offset += FFDataBase.getSize();
+        offset += FFDataBaseAbstractType.getSize();
 
         offset += _xstzName.serialize( buffer, offset );
 
-        if ( _base.getIType() == FFDataBase.ITYPE_TEXT )
+        if ( _base.getIType() == ITYPE_TEXT )
         {
             offset += _xstzTextDef.serialize( buffer, offset );
         }
 
-        if ( _base.getIType() == FFDataBase.ITYPE_CHCK
-                || _base.getIType() == FFDataBase.ITYPE_DROP )
+        if ( _base.getIType() == ITYPE_CHCK
+                || _base.getIType() == ITYPE_DROP )
         {
             LittleEndian.putUShort( buffer, offset, _wDef );
-            offset += LittleEndian.SHORT_SIZE;
+            offset += LittleEndianConsts.SHORT_SIZE;
         }
 
         offset += _xstzTextFormat.serialize( buffer, offset );
@@ -220,9 +223,8 @@ public class FFData
         offset += _xstzEntryMcr.serialize( buffer, offset );
         offset += _xstzExitMcr.serialize( buffer, offset );
 
-        if ( _base.getIType() == FFDataBase.ITYPE_DROP )
-        {
-            offset += _hsttbDropList.serialize( buffer, offset );
+        if ( _base.getIType() == ITYPE_DROP ) {
+            _hsttbDropList.serialize( buffer, offset );
         }
 
         return buffer;

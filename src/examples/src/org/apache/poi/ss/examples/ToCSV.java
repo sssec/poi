@@ -129,6 +129,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
  *                                 either obeying Excel's or UNIX formatting
  *                                 conventions.
  */
+@SuppressWarnings({"java:S106","java:S4823","java:S1192"})
 public class ToCSV {
 
     private Workbook workbook;
@@ -346,7 +347,7 @@ public class ToCSV {
                 // Simply replace the .xls or .xlsx file extension with .csv
                 destinationFilename = excelFile.getName();
                 destinationFilename = destinationFilename.substring(
-                        0, destinationFilename.lastIndexOf(".")) +
+                        0, destinationFilename.lastIndexOf('.')) +
                         ToCSV.CSV_FILE_EXTENSION;
 
                 // Save the CSV file away using the newly constricted file name

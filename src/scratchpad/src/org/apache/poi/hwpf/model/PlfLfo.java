@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
+import org.apache.poi.hwpf.model.types.LFOAbstractType;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 import org.apache.poi.util.POILogFactory;
 import org.apache.poi.util.POILogger;
 
@@ -65,7 +67,7 @@ public class PlfLfo
          * [MS-DOC] -- v20110315 Word (.doc) Binary File Format
          */
         long lfoMacLong = LittleEndian.getUInt( tableStream, offset );
-        offset += LittleEndian.INT_SIZE;
+        offset += LittleEndianConsts.INT_SIZE;
 
         if ( lfoMacLong > Integer.MAX_VALUE )
         {
@@ -86,7 +88,7 @@ public class PlfLfo
         for ( int x = 0; x < _lfoMac; x++ )
         {
             LFO lfo = new LFO( tableStream, offset );
-            offset += LFO.getSize();
+            offset += LFOAbstractType.getSize();
             _rgLfo[x] = lfo;
         }
 
@@ -204,12 +206,12 @@ public class PlfLfo
 
         LittleEndian.putUInt( _lfoMac, outputStream );
 
-        byte[] bs = new byte[LFO.getSize() * _lfoMac];
+        byte[] bs = new byte[LFOAbstractType.getSize() * _lfoMac];
         for ( int i = 0; i < _lfoMac; i++ )
         {
-            _rgLfo[i].serialize( bs, i * LFO.getSize() );
+            _rgLfo[i].serialize( bs, i * LFOAbstractType.getSize() );
         }
-        outputStream.write( bs, 0, LFO.getSize() * _lfoMac );
+        outputStream.write( bs, 0, LFOAbstractType.getSize() * _lfoMac );
 
         for ( int i = 0; i < _lfoMac; i++ )
         {

@@ -18,12 +18,14 @@
 package org.apache.poi.hwpf.sprm;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.poi.hwpf.model.TabDescriptor;
+import org.apache.poi.hwpf.model.types.TBDAbstractType;
 import org.apache.poi.hwpf.usermodel.BorderCode;
 import org.apache.poi.hwpf.usermodel.DateAndTime;
 import org.apache.poi.hwpf.usermodel.DropCapSpecifier;
@@ -33,6 +35,7 @@ import org.apache.poi.hwpf.usermodel.ShadingDescriptor;
 import org.apache.poi.hwpf.usermodel.ShadingDescriptor80;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndian;
+import org.apache.poi.util.LittleEndianConsts;
 import org.apache.poi.util.POILogFactory;
 import org.apache.poi.util.POILogger;
 
@@ -154,7 +157,7 @@ public final class ParagraphSprmUncompressor
         newPAP.setFNoLnn (sprm.getOperand() != 0);
         break;
       case 0xd:
-        /**handle tabs . variable parameter. seperate processing needed*/
+        // handle tabs . variable parameter. seperate processing needed
         handleTabs(newPAP, sprm);
         break;
       case 0xe:
@@ -203,7 +206,7 @@ public final class ParagraphSprmUncompressor
         break;
       case 0x1b:
         byte param = (byte)sprm.getOperand();
-        /** @todo handle paragraph postioning*/
+        // TODO: handle paragraph postioning
         byte pcVert = (byte) ((param & 0x0c) >> 2);
         byte pcHorz = (byte) (param & 0x03);
         if (pcVert != 3)
@@ -312,11 +315,9 @@ public final class ParagraphSprmUncompressor
       case 0x3b:
         //obsolete
         break;
-      case 0x3e:
-      {
-        byte[] buf = new byte[sprm.size() - 3];
-        System.arraycopy(buf, 0, sprm.getGrpprl(), sprm.getGrpprlOffset(),
-                         buf.length);
+      case 0x3e: {
+        // TODO: REMOVEME
+        byte[] buf = Arrays.copyOfRange(sprm.getGrpprl(), sprm.getGrpprlOffset(), sprm.getGrpprlOffset() + (sprm.size() - 3));
         newPAP.setAnld(buf);
         break;
       }
@@ -429,23 +430,23 @@ public final class ParagraphSprmUncompressor
     Map<Integer, TabDescriptor> tabMap = new HashMap<>();
     for (int x = 0; x < tabPositions.length; x++)
     {
-      tabMap.put(Integer.valueOf(tabPositions[x]), tabDescriptors[x]);
+      tabMap.put(tabPositions[x], tabDescriptors[x]);
     }
 
     for (int x = 0; x < delSize; x++)
     {
-      tabMap.remove(Integer.valueOf(LittleEndian.getShort(grpprl, offset)));
-      offset += LittleEndian.SHORT_SIZE;
+      tabMap.remove((int) LittleEndian.getShort(grpprl, offset));
+      offset += LittleEndianConsts.SHORT_SIZE;
     }
 
     int addSize = grpprl[offset++];
     int start = offset;
     for (int x = 0; x < addSize; x++)
     {
-      Integer key = Integer.valueOf(LittleEndian.getShort(grpprl, offset));
-      TabDescriptor val = new TabDescriptor( grpprl, start + ((TabDescriptor.getSize() * addSize) + x) );
+      Integer key = (int) LittleEndian.getShort(grpprl, offset);
+      TabDescriptor val = new TabDescriptor( grpprl, start + ((TBDAbstractType.getSize() * addSize) + x) );
       tabMap.put(key, val);
-      offset += LittleEndian.SHORT_SIZE;
+      offset += LittleEndianConsts.SHORT_SIZE;
     }
 
     tabPositions = new int[tabMap.size()];
@@ -457,7 +458,7 @@ public final class ParagraphSprmUncompressor
     for (int x = 0; x < tabPositions.length; x++)
     {
       Integer key = list.get(x);
-      tabPositions[x] = key.intValue();
+      tabPositions[x] = key;
       if (tabMap.containsKey( key ))
           tabDescriptors[x] = tabMap.get(key);
       else
@@ -467,56 +468,4 @@ public final class ParagraphSprmUncompressor
     pap.setRgdxaTab(tabPositions);
     pap.setRgtbd(tabDescriptors);
   }
-
-//  private static void handleTabsAgain(ParagraphProperties pap, SprmOperation sprm)
-//  {
-//    byte[] grpprl = sprm.getGrpprl();
-//    int offset = sprm.getGrpprlOffset();
-//    int delSize = grpprl[offset++];
-//    int[] tabPositions = pap.getRgdxaTab();
-//    byte[] tabDescriptors = pap.getRgtbd();
-//
-//    HashMap tabMap = new HashMap();
-//    for (int x = 0; x < tabPositions.length; x++)
-//    {
-//      tabMap.put(Integer.valueOf(tabPositions[x]), Byte.valueOf(tabDescriptors[x]));
-//    }
-//
-//    for (int x = 0; x < delSize; x++)
-//    {
-//      tabMap.remove(Integer.valueOf(LittleEndian.getInt(grpprl, offset)));
-//      offset += LittleEndian.INT_SIZE;;
-//    }
-//
-//    int addSize = grpprl[offset++];
-//    for (int x = 0; x < addSize; x++)
-//    {
-//      Integer key = Integer.valueOf(LittleEndian.getInt(grpprl, offset));
-//      Byte val = Byte.valueOf(grpprl[(LittleEndian.INT_SIZE * (addSize - x)) + x]);
-//      tabMap.put(key, val);
-//      offset += LittleEndian.INT_SIZE;
-//    }
-//
-//    tabPositions = new int[tabMap.size()];
-//    tabDescriptors = new byte[tabPositions.length];
-//    ArrayList list = new ArrayList();
-//
-//    Iterator keyIT = tabMap.keySet().iterator();
-//    while (keyIT.hasNext())
-//    {
-//      list.add(keyIT.next());
-//    }
-//    Collections.sort(list);
-//
-//    for (int x = 0; x < tabPositions.length; x++)
-//    {
-//      Integer key = ((Integer)list.get(x));
-//      tabPositions[x] = key.intValue();
-//      tabDescriptors[x] = ((Byte)tabMap.get(key)).byteValue();
-//    }
-//
-//    pap.setRgdxaTab(tabPositions);
-//    pap.setRgtbd(tabDescriptors);
-//  }
-
 }

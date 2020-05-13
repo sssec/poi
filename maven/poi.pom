@@ -28,7 +28,7 @@
 	<version>@VERSION@</version>
 	<packaging>jar</packaging>
 	<name>Apache POI</name>
-	<url>http://poi.apache.org/</url>
+	<url>https://poi.apache.org/</url>
 	<description>Apache POI - Java API To Access Microsoft Format Files</description>
 
   <mailingLists>
@@ -76,7 +76,7 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>1.13</version>
+      <version>1.14</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -104,7 +104,7 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
-      <version>4.12</version>
+      <version>4.13</version>
     </dependency>
   </dependencies>
 
